@@ -1,0 +1,174 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/public-sans";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 202 100% 35%;
+    --primary-foreground: 200 100% 98%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 0 0% 97%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 97%;
+    --accent-foreground: 0 0% 13%;
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 44%;
+    --chart-1: 197 68% 68%;
+    --chart-2: 197 76% 54%;
+    --chart-3: 202 77% 43%;
+    --chart-4: 202 100% 35%;
+    --chart-5: 202 100% 28%;
+    --radius: 0.625rem;
+    --sidebar: 0 0% 98%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 202 77% 43%;
+    --sidebar-primary-foreground: 200 100% 98%;
+    --sidebar-accent: 0 0% 97%;
+    --sidebar-accent-foreground: 0 0% 13%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 0 0% 44%;
+    --font-sans: "Inter Variable", sans-serif;
+    --font-heading: "Public Sans Variable", sans-serif;
+  }
+
+  .dark {
+    --background: 0 0% 9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 13%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 202 100% 28%;
+    --primary-foreground: 200 100% 98%;
+    --secondary: 240 4% 18%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 17%;
+    --muted-foreground: 0 0% 64%;
+    --accent: 0 0% 17%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100% / 10%;
+    --input: 0 0% 100% / 15%;
+    --ring: 0 0% 56%;
+    --chart-1: 197 68% 68%;
+    --chart-2: 197 76% 54%;
+    --chart-3: 202 77% 43%;
+    --chart-4: 202 100% 35%;
+    --chart-5: 202 100% 28%;
+    --sidebar: 0 0% 13%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 197 76% 54%;
+    --sidebar-primary-foreground: 202 50% 18%;
+    --sidebar-accent: 0 0% 17%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 100% / 10%;
+    --sidebar-ring: 0 0% 56%;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: "opsz" 32;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/30;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply border border-border/70 bg-card/80 backdrop-blur-md;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-sky-500 to-cyan-400 bg-clip-text text-transparent;
+  }
+
+  .glow {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.25);
+  }
+
+  .status-not-started {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .status-in-progress {
+    @apply border border-amber-500/30 bg-amber-500/20 text-amber-600;
+  }
+
+  .status-completed {
+    @apply border border-emerald-500/30 bg-emerald-500/20 text-emerald-600;
+  }
+
+  .nav-item {
+    @apply flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground;
+  }
+
+  .nav-item.active {
+    @apply border border-primary/30 bg-primary/10 text-primary;
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5;
+  }
+
+  .media-video {
+    @apply border-sky-500/30 bg-sky-500/20 text-sky-600;
+  }
+
+  .media-pdf {
+    @apply border-emerald-500/30 bg-emerald-500/20 text-emerald-600;
+  }
+
+  .media-questions {
+    @apply border-amber-500/30 bg-amber-500/20 text-amber-600;
+  }
+
+  .media-revision {
+    @apply border-rose-500/30 bg-rose-500/20 text-rose-600;
+  }
+}
