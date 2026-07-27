@@ -348,7 +348,7 @@ export default function StudySessionFloatingButton() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs font-semibold text-gray-400 uppercase">Categoria</Label>
-                <Select value={category} onValueChange={setCategory}>
+                <Select value={category} onValueChange={(value) => setCategory(value ?? '')}>
                   <SelectTrigger className="w-full border-0 border-b-2 border-primary rounded-none px-0 shadow-none focus:ring-0">
                     <SelectValue placeholder="Categoria" />
                   </SelectTrigger>
