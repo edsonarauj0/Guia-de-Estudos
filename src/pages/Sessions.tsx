@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -12,10 +12,11 @@ import {
   Video,
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { getSessions, getStudyPlans } from '@/lib/firestore';
+import { getSessions } from '@/lib/firestore';
+import { usePlanContext } from '@/contexts/PlanContext';
 import { formatDuration } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
-import type { SessionType, StudyPlan, StudySession } from '@/types';
+import type { SessionType, StudySession } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -39,28 +40,17 @@ const SESSION_TYPES: Array<{
 
 export default function SessionsPage() {
   const { user } = useAuthContext();
-  const [plans, setPlans] = useState<StudyPlan[]>([]);
+  const { selectedPlanId, selectedPlan } = usePlanContext();
   const [sessions, setSessions] = useState<StudySession[]>([]);
-  const [selectedPlanId, setSelectedPlanId] = useState(() => localStorage.getItem('selectedPlanId') ?? '');
   const [loading, setLoading] = useState(true);
-
-  const selectedPlan = plans.find(plan => plan.id === selectedPlanId);
+  const [typeFilter, setTypeFilter] = useState<'all' | SessionType>('all');
+  const [periodFilter, setPeriodFilter] = useState<'all' | '7' | '30' | '90'>('all');
 
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const fetchedPlans = await getStudyPlans(user.uid);
-      const targetPlan = fetchedPlans.find(plan => plan.id === selectedPlanId)
-        ?? fetchedPlans.find(plan => plan.status === 'active')
-        ?? fetchedPlans[0];
-      const targetPlanId = targetPlan?.id ?? '';
-
-      setPlans(fetchedPlans);
-      setSelectedPlanId(targetPlanId);
-      if (targetPlanId) localStorage.setItem('selectedPlanId', targetPlanId);
-
-      const fetchedSessions = targetPlanId ? await getSessions(user.uid, targetPlanId) : [];
+      const fetchedSessions = selectedPlanId ? await getSessions(user.uid, selectedPlanId) : [];
       setSessions(fetchedSessions);
     } finally {
       setLoading(false);
@@ -71,19 +61,15 @@ export default function SessionsPage() {
     loadData();
   }, [loadData]);
 
-  const handlePlanChange = async (value: string | null) => {
-    if (!user || !value) return;
-    setSelectedPlanId(value);
-    localStorage.setItem('selectedPlanId', value);
-    setLoading(true);
-    try {
-      setSessions(await getSessions(user.uid, value));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filteredSessions = useMemo(() => sessions.filter(session => {
+    if (typeFilter !== 'all' && session.type !== typeFilter) return false;
+    if (periodFilter === 'all') return true;
+    const since = new Date();
+    since.setDate(since.getDate() - Number(periodFilter));
+    return new Date(session.startedAt) >= since;
+  }), [sessions, typeFilter, periodFilter]);
 
-  const groupedSessions = sessions.reduce((groups, session) => {
+  const groupedSessions = filteredSessions.reduce((groups, session) => {
     const date = format(new Date(session.startedAt), 'yyyy-MM-dd');
     if (!groups[date]) groups[date] = [];
     groups[date].push(session);
@@ -91,45 +77,31 @@ export default function SessionsPage() {
   }, {} as Record<string, StudySession[]>);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const totalMinutes = sessions.reduce((total, session) => total + session.durationMinutes, 0);
+  const totalMinutes = filteredSessions.reduce((total, session) => total + session.durationMinutes, 0);
   const todayMinutes = (groupedSessions[todayStr] ?? []).reduce(
     (total, session) => total + session.durationMinutes,
     0
   );
-  const studiedSubjects = new Set(sessions.map(session => session.subjectId)).size;
+  const studiedSubjects = new Set(filteredSessions.map(session => session.subjectId)).size;
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Histórico de Sessões</h1>
+          <h1 className="text-2xl font-bold text-foreground">Histórico de estudos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Acompanhe o tempo registrado pelo botão flutuante de estudo.
+            Registros de {selectedPlan?.name ?? 'seu planejamento'} agrupados por dia.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Select value={selectedPlanId || undefined} onValueChange={handlePlanChange}>
-            <SelectTrigger className="min-w-56">
-              {selectedPlan ? (
-                <span className="flex min-w-0 items-center gap-2 text-sm">
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: selectedPlan.color }}
-                  />
-                  <span className="truncate">{selectedPlan.name}</span>
-                </span>
-              ) : (
-                <SelectValue placeholder="Selecione o planejamento" />
-              )}
-            </SelectTrigger>
-            <SelectContent>
-              {plans.map(plan => (
-                <SelectItem key={plan.id} value={plan.id}>
-                  {plan.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={periodFilter} onValueChange={value => setPeriodFilter((value ?? 'all') as typeof periodFilter)}>
+            <SelectTrigger className="w-36"><SelectValue placeholder="Período" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todo período</SelectItem><SelectItem value="7">Últimos 7 dias</SelectItem><SelectItem value="30">Últimos 30 dias</SelectItem><SelectItem value="90">Últimos 90 dias</SelectItem></SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={value => setTypeFilter((value ?? 'all') as typeof typeFilter)}>
+            <SelectTrigger className="w-36"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todas categorias</SelectItem>{SESSION_TYPES.map(type => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent>
           </Select>
           <Button variant="outline" onClick={loadData} disabled={loading}>
             Atualizar
@@ -161,7 +133,7 @@ export default function SessionsPage() {
         </p>
         <div className="grid gap-3 md:grid-cols-4">
           {SESSION_TYPES.map(({ className, icon: Icon, label, value }) => {
-            const minutesByType = sessions
+            const minutesByType = filteredSessions
               .filter(session => session.type === value)
               .reduce((total, session) => total + session.durationMinutes, 0);
 
@@ -188,7 +160,7 @@ export default function SessionsPage() {
               <div key={item} className="h-16 animate-pulse rounded-lg bg-muted" />
             ))}
           </div>
-        ) : sessions.length === 0 ? (
+        ) : filteredSessions.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-10 text-center">
             <Clock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
             <p className="font-medium text-foreground">Nenhuma sessão registrada</p>
@@ -226,6 +198,8 @@ export default function SessionsPage() {
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
                             {type.label} · {session.subjectName}
+                            {session.videoTitle ? ` · ${session.videoTitle}` : ''}
+                            {session.videoStartedAt && session.videoEndedAt ? ` (${session.videoStartedAt}–${session.videoEndedAt})` : ''}
                           </p>
                         </div>
                         <div className="shrink-0 text-right">

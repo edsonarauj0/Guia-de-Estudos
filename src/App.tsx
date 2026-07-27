@@ -16,12 +16,15 @@ import SettingsPage from '@/pages/Settings';
 import PlansPage from '@/pages/Plans';
 import QuestionsPage from '@/pages/Questions';
 import ReviewsPage from '@/pages/Reviews';
+import StudyCyclePage from '@/pages/StudyCycle';
+import { PlanProvider } from '@/contexts/PlanContext';
 
 export default function App() {
   return (
     <ThemeProvider>
       <TooltipProvider>
         <AuthProvider>
+          <PlanProvider>
           <BrowserRouter>
             <Routes>
               {/* Public routes */}
@@ -35,6 +38,7 @@ export default function App() {
                   <Route path="/subjects" element={<SubjectsPage />} />
                   <Route path="/sessions" element={<SessionsPage />} />
                   <Route path="/planner" element={<PlannerPage />} />
+                  <Route path="/cycle" element={<StudyCyclePage />} />
                   <Route path="/exams" element={<ExamsPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/plans" element={<PlansPage />} />
@@ -48,9 +52,9 @@ export default function App() {
             </Routes>
             <Toaster richColors position="top-right" />
           </BrowserRouter>
+          </PlanProvider>
         </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>
   );
 }
-

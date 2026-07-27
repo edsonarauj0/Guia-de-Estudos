@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { usePlanContext } from '@/contexts/PlanContext';
 import { getStudyPlans, getSubjects, getTopics, getSessions } from '@/lib/firestore';
 import { calculatePlannerStats } from '@/lib/plannerEngine';
 import { formatDuration } from '@/lib/helpers';
@@ -16,6 +17,7 @@ import { cn } from '@/lib/utils';
 
 export default function PlannerPage() {
   const { user, profile, updateUserProfile } = useAuthContext();
+  const { selectedPlanId: globalPlanId, selectPlan } = usePlanContext();
   const [stats, setStats] = useState<PlannerStats | null>(null);
   const [plans, setPlans] = useState<StudyPlan[]>([]);
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
@@ -24,20 +26,19 @@ export default function PlannerPage() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     loadPlanner();
-  }, [user]);
+  }, [user, globalPlanId]);
 
   const loadPlanner = async (planIdOverride?: string) => {
     if (!user) return;
     setLoading(true);
     try {
-      const savedPlanId = localStorage.getItem('selectedPlanId');
       const availablePlans = await getStudyPlans(user.uid);
       setPlans(availablePlans);
       
-      let targetPlanId = planIdOverride || savedPlanId;
+      let targetPlanId = planIdOverride || globalPlanId;
       if (!targetPlanId && availablePlans.length > 0) {
         targetPlanId = availablePlans[0].id;
-        localStorage.setItem('selectedPlanId', targetPlanId);
+        selectPlan(targetPlanId);
       }
       
       if (!targetPlanId) {
@@ -76,7 +77,7 @@ export default function PlannerPage() {
   const handlePlanChange = async (planId: string) => {
     if (!planId || planId === activePlanId) return;
     setActivePlanId(planId);
-    localStorage.setItem('selectedPlanId', planId);
+    selectPlan(planId);
     await loadPlanner(planId);
   };
 

@@ -5,16 +5,19 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getReviewCards } from '@/lib/firestore';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard, BookOpen, BarChart3,
+  LayoutDashboard, BookOpen, BarChart3, PieChart, History,
   Settings, LogOut, Menu, X, ChevronRight, Moon, Sun,
   FolderOpen, HelpCircle, RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePlanContext } from '@/contexts/PlanContext';
 
 export default function Sidebar() {
   const { user, profile, logout } = useAuthContext();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { plans, selectedPlanId, selectPlan } = usePlanContext();
   const [isOpen, setIsOpen] = useState(false);
   const [reviewCount, setReviewCount] = useState(0);
 
@@ -36,6 +39,8 @@ export default function Sidebar() {
     { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
     { to: '/plans', icon: FolderOpen, label: 'Planejamentos' },
     { to: '/subjects', icon: BookOpen, label: 'Matérias' },
+    { to: '/cycle', icon: PieChart, label: 'Ciclo de estudos' },
+    { to: '/sessions', icon: History, label: 'Histórico' },
     { to: '/questions', icon: HelpCircle, label: 'Questões' },
     { to: '/reviews', icon: RotateCcw, label: 'Revisões', badge: reviewCount },
     { to: '/exams', icon: BarChart3, label: 'Simulados' },
@@ -86,6 +91,17 @@ export default function Sidebar() {
               <p className="text-xs text-muted-foreground">Tracker de Concursos</p>
             </div>
           </div>
+          {plans.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Planejamento ativo</p>
+              <Select value={selectedPlanId ?? undefined} onValueChange={value => value && selectPlan(value)}>
+                <SelectTrigger className="h-9 w-full text-xs"><SelectValue placeholder="Selecionar planejamento" /></SelectTrigger>
+                <SelectContent>
+                  {plans.map(plan => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">

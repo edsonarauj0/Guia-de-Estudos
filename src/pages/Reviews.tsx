@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 
 import { useAuthContext } from '@/contexts/AuthContext';
+import { usePlanContext } from '@/contexts/PlanContext';
 import { deleteReviewCard, getReviewCards, getStudyPlans, submitReview } from '@/lib/firestore';
 import { describeInterval, formatDateYMD, getQualityLabel, isDueToday } from '@/lib/sm2';
 import type { SM2Quality } from '@/lib/sm2';
@@ -35,6 +36,7 @@ const REVIEW_QUALITIES: SM2Quality[] = [0, 2, 4, 5];
 
 export default function Reviews() {
   const { user } = useAuthContext();
+  const { selectedPlanId: globalPlanId } = usePlanContext();
   const [cards, setCards] = useState<ReviewCard[]>([]);
   const [plans, setPlans] = useState<StudyPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState('all');
@@ -46,14 +48,16 @@ export default function Reviews() {
 
   useEffect(() => {
     if (user) loadData();
-  }, [user]);
+  }, [user, globalPlanId]);
+
+  useEffect(() => { setSelectedPlanId(globalPlanId ?? 'all'); }, [globalPlanId]);
 
   async function loadData() {
     if (!user) return;
 
     try {
       const [fetchedCards, fetchedPlans] = await Promise.all([
-        getReviewCards(user.uid),
+        getReviewCards(user.uid, globalPlanId ?? undefined),
         getStudyPlans(user.uid),
       ]);
       setCards(fetchedCards);

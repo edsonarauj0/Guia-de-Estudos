@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { usePlanContext } from '@/contexts/PlanContext';
 import {
   getStudyPlans,
   createStudyPlan,
@@ -45,6 +46,7 @@ const DEFAULT_PROGRESS: TopicProgress = {
 
 export default function SubjectsPage() {
   const { user } = useAuthContext();
+  const { selectedPlanId: globalPlanId, selectPlan, refreshPlans } = usePlanContext();
   const [subjects, setSubjects] = useState<SubjectWithTopics[]>([]);
   const [plans, setPlans] = useState<StudyPlan[]>([]);
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
@@ -76,20 +78,17 @@ export default function SubjectsPage() {
     if (!user) return;
     setLoading(true);
     try {
-      const requestedPlanId = new URLSearchParams(window.location.search).get('planId');
-      const savedPlanId = localStorage.getItem('selectedPlanId');
-
       const availablePlans = await getStudyPlans(user.uid);
       setPlans(availablePlans);
 
-      let targetPlanId = planIdOverride || requestedPlanId || savedPlanId;
+      let targetPlanId = planIdOverride || globalPlanId;
       if (targetPlanId && !availablePlans.some(plan => plan.id === targetPlanId)) {
         targetPlanId = null;
       }
 
       if (!targetPlanId && availablePlans.length > 0) {
         targetPlanId = availablePlans[0].id;
-        localStorage.setItem('selectedPlanId', targetPlanId);
+        selectPlan(targetPlanId);
       }
 
       if (!targetPlanId) {
@@ -116,19 +115,19 @@ export default function SubjectsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, globalPlanId, selectPlan]);
 
   useEffect(() => {
     if (!user) return;
     loadSubjects();
-  }, [user, loadSubjects]);
+  }, [user, globalPlanId, loadSubjects]);
 
   const activePlan = plans.find(plan => plan.id === activePlanId) ?? null;
 
   const handlePlanChange = async (planId: string) => {
     if (!planId || planId === activePlanId) return;
     setActivePlanId(planId);
-    localStorage.setItem('selectedPlanId', planId);
+    selectPlan(planId);
     await loadSubjects(planId);
   };
 
@@ -147,7 +146,8 @@ export default function SubjectsPage() {
     setPlanDialog(false);
     setPlanName('');
     setPlanDescription('');
-    localStorage.setItem('selectedPlanId', id);
+    selectPlan(id);
+    await refreshPlans();
     await loadSubjects(id);
   };
 

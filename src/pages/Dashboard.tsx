@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { getSubjects, getTopics, getSessions, getQuestionLogs, getReviewCards, getStudyPlans } from '@/lib/firestore';
+import { usePlanContext } from '@/contexts/PlanContext';
+import { getSubjects, getTopics, getSessions, getQuestionLogs, getReviewCards, getStudyCycles, getStudyPlans } from '@/lib/firestore';
 import { calculatePlannerStats, calcTodayHours, calcStreak } from '@/lib/plannerEngine';
 import Countdown from '@/components/dashboard/Countdown';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
 import SubjectProgressChart from '@/components/dashboard/SubjectProgressChart';
 import { Progress } from '@/components/ui/progress';
-import type { PlannerStats } from '@/types';
+import type { PlannerStats, StudyCycle, StudySession } from '@/types';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   BookOpen, CheckCircle2, Clock, Flame, Target, TrendingUp,
   AlertCircle, HelpCircle, RotateCcw
@@ -16,6 +18,7 @@ import { Link } from 'react-router-dom';
 
 export default function DashboardPage() {
   const { user, profile } = useAuthContext();
+  const { selectedPlanId } = usePlanContext();
   const [stats, setStats] = useState<PlannerStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -25,15 +28,16 @@ export default function DashboardPage() {
   const [streak, setStreak] = useState(0);
   const [todayStudiedHours, setTodayStudiedHours] = useState(0);
   const [todayGoalHours, setTodayGoalHours] = useState(0);
+  const [activeCycle, setActiveCycle] = useState<StudyCycle | null>(null);
+  const [cycleSessions, setCycleSessions] = useState<StudySession[]>([]);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       setLoading(true);
       try {
-        const savedPlanId = localStorage.getItem('selectedPlanId');
         const plans = await getStudyPlans(user.uid);
-        let targetPlanId = savedPlanId;
+        let targetPlanId = selectedPlanId;
         if (!targetPlanId && plans.length > 0) targetPlanId = plans[0].id;
 
         if (!targetPlanId) {
@@ -50,6 +54,9 @@ export default function DashboardPage() {
           }))
         );
         const sessions = await getSessions(user.uid, activePlan.id);
+        const cycles = await getStudyCycles(user.uid, activePlan.id);
+        setActiveCycle(cycles.find(cycle => cycle.status === 'active') ?? null);
+        setCycleSessions(sessions);
 
         if (activePlan) {
           const s = calculatePlannerStats({
@@ -99,7 +106,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     })();
-  }, [user, profile]);
+  }, [user, profile, selectedPlanId]);
 
   if (loading) {
     return (
@@ -265,6 +272,7 @@ export default function DashboardPage() {
               </Link>
             </div>
           )}
+
 
           {/* Heatmap */}
           <ActivityHeatmap sessions={[]} />

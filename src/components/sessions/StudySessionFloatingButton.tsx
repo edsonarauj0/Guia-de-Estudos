@@ -12,11 +12,14 @@ import {
   X,
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { usePlanContext } from '@/contexts/PlanContext';
 import {
   createSession,
   getStudyPlans,
   getSubjects,
   getTopics,
+  getStudyCycles,
+  updateTopic,
 } from '@/lib/firestore';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { cn } from '@/lib/utils';
@@ -39,6 +42,7 @@ import {
 
 export default function StudySessionFloatingButton() {
   const { user } = useAuthContext();
+  const { plans: globalPlans, selectedPlanId: globalPlanId, selectPlan } = usePlanContext();
   const navigate = useNavigate();
   const { elapsedSeconds, formatted, isRunning, minutes, pause, reset, start } = useStudyTimer();
 
@@ -69,6 +73,10 @@ export default function StudySessionFloatingButton() {
   const [startPage, setStartPage] = useState(0);
   const [endPage, setEndPage] = useState(0);
   const [comments, setComments] = useState('');
+  const [manualDuration, setManualDuration] = useState('01:00');
+  const [videoTitle, setVideoTitle] = useState('Vídeo 01');
+  const [videoStartTime, setVideoStartTime] = useState('00:00:00');
+  const [videoEndTime, setVideoEndTime] = useState('00:00:00');
 
   const [sessionStart, setSessionStart] = useState<string | null>(null);
 
@@ -103,6 +111,14 @@ export default function StudySessionFloatingButton() {
     if (!open || plans.length > 0) return;
     loadPlans();
   }, [loadPlans, open, plans.length]);
+
+  useEffect(() => {
+    if (!globalPlanId) return;
+    setPlans(globalPlans);
+    setSelectedPlanId(globalPlanId);
+    setSelectedSubjectId('');
+    setSelectedTopicId('');
+  }, [globalPlanId, globalPlans]);
 
   useEffect(() => {
     if (!selectedPlanId) {
@@ -165,7 +181,7 @@ export default function StudySessionFloatingButton() {
     setSelectedPlanId(planId);
     setSelectedSubjectId('');
     setSelectedTopicId('');
-    localStorage.setItem('selectedPlanId', planId);
+    selectPlan(planId);
   };
 
   const handleStart = () => {
@@ -185,9 +201,9 @@ export default function StudySessionFloatingButton() {
   };
 
   const handleFinish = async () => {
-    if (!user || !selectedPlanId || !selectedSubjectId || !sessionStart) return;
+    if (!user || !selectedPlanId || !selectedSubjectId) return;
 
-    if (elapsedSeconds < 10) {
+    if (sessionStart && elapsedSeconds < 10) {
       toast.info('Sessão muito curta para registrar');
       handleCancel();
       return;
@@ -196,7 +212,11 @@ export default function StudySessionFloatingButton() {
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      const durationMinutes = Math.max(1, minutes || Math.ceil(elapsedSeconds / 60));
+      const [manualHours, manualMinutes] = manualDuration.split(':').map(Number);
+      const manualDurationMinutes = (manualHours || 0) * 60 + (manualMinutes || 0);
+      const durationMinutes = sessionStart
+        ? Math.max(1, minutes || Math.ceil(elapsedSeconds / 60))
+        : Math.max(1, manualDurationMinutes);
       const sessionData: Omit<StudySession, 'id'> = {
         userId: user.uid,
         planId: selectedPlanId,
@@ -204,13 +224,32 @@ export default function StudySessionFloatingButton() {
         subjectName: selectedSubject?.name ?? 'Matéria não encontrada',
         topicId: selectedTopic?.id,
         topicName: selectedTopic?.name,
-        type: 'video',
-        startedAt: sessionStart,
+        startedAt: sessionStart ?? now,
         endedAt: now,
         durationMinutes,
+        type: category === 'Exercícios' ? 'questions' : category === 'Revisão' ? 'revision' : 'video',
       };
 
+      if (category === 'Teoria') {
+        if (videoTitle.trim()) sessionData.videoTitle = videoTitle.trim();
+        if (videoStartTime) sessionData.videoStartedAt = videoStartTime;
+        if (videoEndTime) sessionData.videoEndedAt = videoEndTime;
+      }
+
+      const cycles = await getStudyCycles(user.uid, selectedPlanId);
+      const activeCycleId = cycles.find(cycle => cycle.status === 'active')?.id;
+      if (activeCycleId) sessionData.cycleId = activeCycleId;
+
       await createSession(sessionData);
+      if (category === 'Teoria' && theoryFinished && selectedTopic) {
+        const now = new Date().toISOString();
+        const progress = {
+          ...selectedTopic.progress,
+          video: { ...selectedTopic.progress.video, status: 'completed' as const, completedAt: now },
+          pdf: { ...selectedTopic.progress.pdf, status: 'completed' as const, completedAt: now },
+        };
+        await updateTopic(selectedPlanId, selectedSubjectId, selectedTopic.id, { progress });
+      }
       toast.success(`Sessão registrada: ${durationMinutes}min`);
       handleCancel();
       setOpen(false);
@@ -388,9 +427,18 @@ export default function StudySessionFloatingButton() {
 
               <div className="space-y-1">
                 <Label className="text-xs font-semibold text-gray-400 uppercase">Tempo de Estudo</Label>
-                <div className="border-b-2 border-primary py-2 font-mono text-gray-700 font-semibold">
-                  {formatted || '00:00:00'}
-                </div>
+                {sessionStart ? (
+                  <div className="border-b-2 border-primary py-2 font-mono text-gray-700 font-semibold">{formatted}</div>
+                ) : (
+                  <input
+                    type="time"
+                    step="60"
+                    value={manualDuration}
+                    onChange={event => setManualDuration(event.target.value)}
+                    className="w-full border-0 border-b-2 border-primary px-0 py-1.5 font-mono text-sm font-semibold outline-none"
+                    aria-label="Tempo de estudo manual"
+                  />
+                )}
               </div>
             </div>
 
@@ -521,10 +569,27 @@ export default function StudySessionFloatingButton() {
                 <div className="flex justify-center items-center gap-1 mt-2">
                   <input
                     type="text"
-                    defaultValue="Vídeo 01"
-                    className="w-16 text-center border-b-2 border-primary bg-transparent text-xs font-bold outline-none"
+                    value={videoTitle}
+                    onChange={event => setVideoTitle(event.target.value)}
+                    className="w-20 text-center border-b-2 border-primary bg-transparent text-xs font-bold outline-none"
                   />
-                  <span className="text-xs font-mono text-gray-600">00:00:00</span>
+                  <input
+                    type="time"
+                    step="1"
+                    value={videoStartTime}
+                    onChange={event => setVideoStartTime(event.target.value)}
+                    className="w-[76px] border-b-2 border-primary bg-transparent text-center font-mono text-[11px] outline-none"
+                    aria-label="Início da videoaula"
+                  />
+                  <span className="text-gray-400">–</span>
+                  <input
+                    type="time"
+                    step="1"
+                    value={videoEndTime}
+                    onChange={event => setVideoEndTime(event.target.value)}
+                    className="w-[76px] border-b-2 border-primary bg-transparent text-center font-mono text-[11px] outline-none"
+                    aria-label="Fim da videoaula"
+                  />
                 </div>
               </div>
             </div>

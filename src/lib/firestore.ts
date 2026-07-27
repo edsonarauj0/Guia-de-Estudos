@@ -19,6 +19,7 @@ import type {
   Subject,
   Topic,
   StudySession,
+  StudyCycle,
   QuestionLog,
   ReviewCard,
   Exam,
@@ -239,6 +240,28 @@ export async function getSessions(userId: string, planId?: string): Promise<Stud
 export async function createSession(data: Omit<StudySession, 'id'>): Promise<string> {
   const ref = await addDoc(collection(db, 'sessions'), data);
   return ref.id;
+}
+
+// ─── STUDY CYCLES ─────────────────────────────────────────────
+export async function getStudyCycles(userId: string, planId?: string): Promise<StudyCycle[]> {
+  const constraints: any[] = [where('userId', '==', userId)];
+  if (planId) constraints.push(where('planId', '==', planId));
+  const snap = await getDocs(query(collection(db, 'studyCycles'), ...constraints));
+  const cycles = snap.docs.map(d => ({ id: d.id, ...d.data() } as StudyCycle));
+  return cycles.sort((a, b) => (a.cycleNumber ?? 0) - (b.cycleNumber ?? 0) || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+export async function createStudyCycle(data: Omit<StudyCycle, 'id'>): Promise<string> {
+  const ref = await addDoc(collection(db, 'studyCycles'), data);
+  return ref.id;
+}
+
+export async function updateStudyCycle(id: string, data: Partial<StudyCycle>): Promise<void> {
+  await updateDoc(doc(db, 'studyCycles', id), { ...data, updatedAt: new Date().toISOString() });
+}
+
+export async function deleteStudyCycle(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'studyCycles', id));
 }
 
 // ─── QUESTION LOGS ────────────────────────────────────────────

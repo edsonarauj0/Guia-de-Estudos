@@ -100,6 +100,34 @@ export interface StudySession {
   startedAt: string;
   endedAt: string;
   durationMinutes: number;
+  cycleId?: string;
+  videoTitle?: string;
+  videoStartedAt?: string;
+  videoEndedAt?: string;
+}
+
+// ─── STUDY CYCLE ──────────────────────────────────────────────
+// Um ciclo é uma sequência finita de sessões planejadas a partir dos tópicos.
+export interface StudyCycleItem {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  subjectColor: string;
+  topicId: string;
+  topicName: string;
+  plannedMinutes: number;
+}
+
+export interface StudyCycle {
+  id: string;
+  userId: string;
+  planId: string;
+  name: string;
+  status: 'active' | 'planned' | 'completed' | 'archived';
+  cycleNumber?: number;
+  items: StudyCycleItem[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ─── QUESTION LOG ─────────────────────────────────────────────

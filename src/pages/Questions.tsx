@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { usePlanContext } from '@/contexts/PlanContext';
 import { getStudyPlans, getSubjects, getTopics, getQuestionLogs, createQuestionLog, deleteQuestionLog } from '@/lib/firestore';
 import type { StudyPlan, Subject, Topic, QuestionLog } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import { toast } from 'sonner';
 
 export default function Questions() {
   const { user } = useAuthContext();
+  const { selectedPlanId: globalPlanId } = usePlanContext();
   const [logs, setLogs] = useState<QuestionLog[]>([]);
   const [plans, setPlans] = useState<StudyPlan[]>([]);
   const [selectedPlanIdFilter, setSelectedPlanIdFilter] = useState<string>('all');
@@ -43,12 +45,17 @@ export default function Questions() {
   useEffect(() => {
     if (!user) return;
     loadInitialData();
-  }, [user]);
+  }, [user, globalPlanId]);
+
+  useEffect(() => {
+    setSelectedPlanIdFilter(globalPlanId ?? 'all');
+    setFormPlanId(globalPlanId ?? '');
+  }, [globalPlanId]);
 
   async function loadInitialData() {
     if (!user) return;
     const [fetchedLogs, fetchedPlans] = await Promise.all([
-      getQuestionLogs(user.uid),
+      getQuestionLogs(user.uid, globalPlanId ?? undefined),
       getStudyPlans(user.uid),
     ]);
     setLogs(fetchedLogs);
