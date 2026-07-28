@@ -210,7 +210,7 @@ export function buildCalendarPlan(params: {
           subjectName: sub.name,
           subjectColor: sub.color,
           topicId: topic?.id,
-          topicName: topic?.name,
+          topicName: topic?.name || 'Sem tópico',
           plannedMinutes: minPerTopic,
         });
       }
@@ -232,7 +232,7 @@ export function buildCalendarPlan(params: {
 
   const getOrCreateSummary = (cycleNumber: number, baseName: string, cycleId?: string, roundIdx = 0): CycleSummary => {
     const uniqueKey = `${cycleId}-${roundIdx}`;
-    let cs = cycleSummaries.find(c => (c as any)._uniqueKey === uniqueKey);
+    let cs: CycleSummary | undefined = cycleSummaries.find(c => (c as any)._uniqueKey === uniqueKey);
     if (!cs) {
       const assignedNum = globalSequenceNumber++;
       cs = {
@@ -247,9 +247,9 @@ export function buildCalendarPlan(params: {
         items: [],
         _uniqueKey: uniqueKey as any,
       } as any;
-      cycleSummaries.push(cs);
+      cycleSummaries.push(cs!);
     }
-    return cs;
+    return cs!;
   };
 
   const subjectTopicMap = new Map<string, Topic[]>();
@@ -307,8 +307,8 @@ export function buildCalendarPlan(params: {
         subjectId: base.subjectId,
         subjectName: base.subjectName,
         subjectColor: base.subjectColor,
-        topicId: slotTopicId,
-        topicName: slotTopicName,
+        topicId: slotTopicId || 'no-topic',
+        topicName: slotTopicName || 'Sem tópico',
         plannedMinutes: left,
       };
       activeCs.items.push(cycleItem);
@@ -329,8 +329,8 @@ export function buildCalendarPlan(params: {
           subjectId: base.subjectId,
           subjectName: base.subjectName,
           subjectColor: base.subjectColor,
-          topicId: slotTopicId,
-          topicName: slotTopicName,
+          topicId: slotTopicId || 'no-topic',
+          topicName: slotTopicName || 'Sem tópico',
           minutes: alloc,
         });
 

@@ -741,14 +741,6 @@ export default function CalendarPage() {
               : ""}
           </p>
         </div>
-        <Select value={activePlanId} onValueChange={(id) => id && handlePlanChange(id)}>
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="Selecione o planejamento" />
-          </SelectTrigger>
-          <SelectContent>
-            {allPlans.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
       </div>
 
       {!selectedPlan?.examDate && (

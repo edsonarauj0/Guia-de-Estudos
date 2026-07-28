@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -12,6 +12,7 @@ import {
   BookOpen,
   HelpCircle,
   Video,
+  RotateCcw,
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { usePlanContext } from '@/contexts/PlanContext';
@@ -47,24 +48,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 
 export default function StudySessionFloatingButton() {
   const { user } = useAuthContext();
-  const { plans: globalPlans, selectedPlanId: globalPlanId, selectPlan } = usePlanContext();
+  const { plans: globalPlans, selectedPlanId: globalPlanId } = usePlanContext();
   const navigate = useNavigate();
   const { elapsedSeconds, formatted, isRunning, minutes, pause, reset, start } = useStudyTimer();
 
   const [open, setOpen] = useState(false);
+  const [speedDialOpen, setSpeedDialOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const speedDialRef = useRef<HTMLDivElement>(null);
 
   // Dados carregados
   const [plans, setPlans] = useState<StudyPlan[]>([]);
@@ -76,12 +73,14 @@ export default function StudySessionFloatingButton() {
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedTopicId, setSelectedTopicId] = useState('');
   const [dateOption, setDateOption] = useState<'today' | 'yesterday' | 'other'>('today');
+  const [customDate, setCustomDate] = useState(() => new Date().toISOString().slice(0, 10));
 
-  // Categorias ativas (selecionadas via checkbox nos accordions)
+  // Categorias ativas
   const [activeCategories, setActiveCategories] = useState({
     questoes: false,
     paginas: false,
-    videoaulas: true, // Inicia com videoaulas marcado por padrão
+    videoaulas: true,
+    revisoes: false,
   });
 
   // Métricas adicionais do formulário
@@ -100,12 +99,8 @@ export default function StudySessionFloatingButton() {
   const [videoStartTime, setVideoStartTime] = useState('00:00:00');
   const [videoEndTime, setVideoEndTime] = useState('00:00:00');
 
-  // Controle dos accordions abertos
-  const [openAccordions, setOpenAccordions] = useState<string[]>(['videoaulas']);
-
   const [sessionStart, setSessionStart] = useState<string | null>(null);
 
-  const selectedPlan = plans.find(plan => plan.id === selectedPlanId);
   const selectedSubject = subjects.find(subject => subject.id === selectedSubjectId);
   const selectedTopic = topics.find(topic => topic.id === selectedTopicId);
 
@@ -113,16 +108,27 @@ export default function StudySessionFloatingButton() {
   const isExercicios = activeCategories.questoes;
   const isPaginas = activeCategories.paginas;
   const isVideo = activeCategories.videoaulas;
+  const isRevisoes = activeCategories.revisoes;
 
-  const toggleCategory = (key: keyof typeof activeCategories) => {
-    setActiveCategories(prev => {
-      const newState = { ...prev, [key]: !prev[key] };
-      // Se estiver ativando, expande o accordion automaticamente
-      if (newState[key]) {
-        setOpenAccordions(open => Array.from(new Set([...open, key])));
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (speedDialRef.current && !speedDialRef.current.contains(event.target as Node)) {
+        setSpeedDialOpen(false);
       }
-      return newState;
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const openModalWithCategory = (category: 'videoaulas' | 'paginas' | 'questoes' | 'revisoes') => {
+    setActiveCategories({
+      videoaulas: category === 'videoaulas',
+      paginas: category === 'paginas',
+      questoes: category === 'questoes',
+      revisoes: category === 'revisoes',
     });
+    setSpeedDialOpen(false);
+    setOpen(true);
   };
 
   const loadPlans = useCallback(async () => {
@@ -223,7 +229,7 @@ export default function StudySessionFloatingButton() {
       return;
     }
 
-    if (!isExercicios && !isPaginas && !isVideo) {
+    if (!isExercicios && !isPaginas && !isVideo && !isRevisoes) {
       toast.error('Selecione pelo menos uma categoria nos blocos abaixo');
       return;
     }
@@ -238,6 +244,18 @@ export default function StudySessionFloatingButton() {
     setSessionStart(null);
   };
 
+  const getResolvedDate = () => {
+    const now = new Date();
+    if (dateOption === 'yesterday') {
+      now.setDate(now.getDate() - 1);
+      return now.toISOString();
+    }
+    if (dateOption === 'other' && customDate) {
+      return new Date(`${customDate}T12:00:00`).toISOString();
+    }
+    return now.toISOString();
+  };
+
   const handleFinish = async () => {
     if (!user || !selectedPlanId || !selectedSubjectId) return;
 
@@ -249,6 +267,7 @@ export default function StudySessionFloatingButton() {
 
     setSaving(true);
     try {
+      const resolvedDateStr = getResolvedDate();
       const now = new Date().toISOString();
       const [manualHours, manualMinutes] = manualDuration.split(':').map(Number);
       const manualDurationMinutes = (manualHours || 0) * 60 + (manualMinutes || 0);
@@ -256,10 +275,9 @@ export default function StudySessionFloatingButton() {
         ? Math.max(1, minutes || Math.ceil(elapsedSeconds / 60))
         : Math.max(1, manualDurationMinutes);
 
-      // Define o tipo da sessão baseado no que foi selecionado
       let sessionType: 'questions' | 'reading' | 'video' | 'revision' = 'video';
       const activeCount = Object.values(activeCategories).filter(Boolean).length;
-      if (activeCount > 1) sessionType = 'revision';
+      if (isRevisoes || activeCount > 1) sessionType = 'revision';
       else if (isExercicios) sessionType = 'questions';
       else if (isPaginas) sessionType = 'reading';
       else if (isVideo) sessionType = 'video';
@@ -271,8 +289,8 @@ export default function StudySessionFloatingButton() {
         subjectName: selectedSubject?.name ?? 'Matéria não encontrada',
         topicId: selectedTopic?.id,
         topicName: selectedTopic?.name,
-        startedAt: sessionStart ?? now,
-        endedAt: now,
+        startedAt: sessionStart ?? resolvedDateStr,
+        endedAt: resolvedDateStr,
         durationMinutes,
         type: sessionType,
       };
@@ -289,10 +307,9 @@ export default function StudySessionFloatingButton() {
 
       await createSession(sessionData);
 
-      // ── Auto-create QuestionLog se o usuário preencheu questões e selecionou a categoria ──
       const totalQuestoes = correctQuestions + wrongQuestions;
       if (isExercicios && totalQuestoes > 0) {
-        const dateStr = (sessionStart ?? new Date().toISOString()).slice(0, 10);
+        const dateStr = resolvedDateStr.slice(0, 10);
         await createQuestionLog({
           userId: user.uid,
           planId: selectedPlanId,
@@ -307,23 +324,36 @@ export default function StudySessionFloatingButton() {
           wrong: wrongQuestions,
           ...(comments.trim() ? { notes: comments.trim() } : {}),
           sessionType: 'practice',
-          createdAt: new Date().toISOString(),
+          createdAt: now,
         });
       }
 
-      // Atualiza progresso da Teoria se necessário
-      if ((isVideo || isPaginas) && theoryFinished && selectedTopic) {
-        const progress = {
-          ...selectedTopic.progress,
-          ...(isVideo && { video: { ...selectedTopic.progress.video, status: 'completed' as const, completedAt: now } }),
-          ...(isPaginas && { pdf: { ...selectedTopic.progress.pdf, status: 'completed' as const, completedAt: now } }),
-        };
-        await updateTopic(selectedPlanId, selectedSubjectId, selectedTopic.id, { progress });
+      if (theoryFinished && selectedTopic) {
+        const updatedProgress = { ...selectedTopic.progress };
+        for (const key of Object.keys(updatedProgress) as Array<keyof typeof updatedProgress>) {
+          updatedProgress[key] = {
+            ...updatedProgress[key],
+            status: 'completed',
+            completedAt: resolvedDateStr,
+          };
+        }
+        await updateTopic(selectedPlanId, selectedSubjectId, selectedTopic.id, { progress: updatedProgress });
       }
 
-      // ── Cria ReviewCards se "PROGRAMAR REVISÕES" estiver ativo ──
+      if (isRevisoes && selectedTopic && selectedTopic.progress?.revision) {
+        const updatedProgress = {
+          ...selectedTopic.progress,
+          revision: {
+            ...selectedTopic.progress.revision,
+            status: 'completed' as const,
+            completedAt: resolvedDateStr,
+          },
+        };
+        await updateTopic(selectedPlanId, selectedSubjectId, selectedTopic.id, { progress: updatedProgress });
+      }
+
       if (programRevisions && selectedTopic && selectedSubject && revisions.length > 0) {
-        const sessionDateStr = (sessionStart ?? now).slice(0, 10);
+        const sessionDateStr = resolvedDateStr.slice(0, 10);
         const sessionDate = new Date(`${sessionDateStr}T12:00:00`);
 
         for (const rev of revisions) {
@@ -336,7 +366,6 @@ export default function StudySessionFloatingButton() {
 
           const existing = await getReviewCard(user.uid, selectedTopic.id);
           if (existing) {
-            // Só atualiza se a nova data for anterior à existente
             if (nextReview < existing.nextReview) {
               await updateReviewCard(existing.id, { nextReview, updatedAt: now });
             }
@@ -357,7 +386,6 @@ export default function StudySessionFloatingButton() {
               createdAt: now,
               updatedAt: now,
             });
-            // Só cria um card por tópico (usa o menor intervalo para o primeiro)
             break;
           }
         }
@@ -379,19 +407,62 @@ export default function StudySessionFloatingButton() {
 
   return (
     <>
+      {/* SPEED DIAL FAB */}
       {!sessionStart && (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className={cn(
-            'fixed bottom-5 right-5 z-40 flex h-14 min-w-14 items-center justify-center gap-3 rounded-sm border shadow-xl',
-            'border-primary/30 bg-primary px-5 text-white transition-all duration-200 hover:scale-105 hover:bg-secondary-foreground',
-            'lg:bottom-7 lg:right-7'
+        <div ref={speedDialRef} className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2 lg:bottom-7 lg:right-7">
+          {speedDialOpen && (
+            <div className="flex flex-col items-end gap-2 mb-1 animate-fade-in">
+              <button
+                type="button"
+                onClick={() => openModalWithCategory('revisoes')}
+                className="flex items-center gap-2 rounded-sm bg-white border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 shadow-md transition-all hover:bg-gray-50 hover:scale-105"
+              >
+                <span>Revisão</span>
+                <RotateCcw className="h-4 w-4 text-primary" />
+              </button>
+              <button
+                type="button"
+                onClick={() => openModalWithCategory('questoes')}
+                className="flex items-center gap-2 rounded-sm bg-white border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 shadow-md transition-all hover:bg-gray-50 hover:scale-105"
+              >
+                <span>Questões</span>
+                <HelpCircle className="h-4 w-4 text-primary" />
+              </button>
+              <button
+                type="button"
+                onClick={() => openModalWithCategory('paginas')}
+                className="flex items-center gap-2 rounded-sm bg-white border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 shadow-md transition-all hover:bg-gray-50 hover:scale-105"
+              >
+                <span>PDF / Leitura</span>
+                <BookOpen className="h-4 w-4 text-primary" />
+              </button>
+              <button
+                type="button"
+                onClick={() => openModalWithCategory('videoaulas')}
+                className="flex items-center gap-2 rounded-sm bg-white border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 shadow-md transition-all hover:bg-gray-50 hover:scale-105"
+              >
+                <span>Videoaulas</span>
+                <Video className="h-4 w-4 text-primary" />
+              </button>
+            </div>
           )}
-          aria-label="Abrir sessão de estudo"
-        >
-          <Clock3 className="h-5 w-5" />
-        </button>
+
+          <button
+            type="button"
+            onClick={() => setSpeedDialOpen(!speedDialOpen)}
+            className={cn(
+              'flex h-14 w-14 items-center justify-center rounded-sm border shadow-xl',
+              'border-primary/30 bg-primary text-white transition-all duration-200 hover:scale-105 hover:bg-secondary-foreground'
+            )}
+            aria-label="Menu de estudo"
+          >
+            {speedDialOpen ? (
+              <X className="h-6 w-6 transition-transform rotate-90" />
+            ) : (
+              <Clock3 className="h-6 w-6" />
+            )}
+          </button>
+        </div>
       )}
 
       {sessionStart && (
@@ -447,10 +518,10 @@ export default function StudySessionFloatingButton() {
           </DialogHeader>
 
           <div className="space-y-6 pt-2">
-            {/* SELEÇÃO DE DATA */}
+            {/* SELEÇÃO DE DATA COM INPUT SEMPRE VISÍVEL AO LADO DE "OUTRO" */}
             <div className="flex flex-wrap items-center gap-3">
               <Calendar className="h-5 w-5 text-gray-500 hidden sm:block" />
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setDateOption('today')}
@@ -487,6 +558,16 @@ export default function StudySessionFloatingButton() {
                 >
                   Outro
                 </button>
+                <Input
+                  type="date"
+                  value={customDate}
+                  onChange={e => setCustomDate(e.target.value)}
+                  disabled={dateOption !== 'other'}
+                  className={cn(
+                    'w-40 h-8 text-xs',
+                    dateOption !== 'other' && 'opacity-50 cursor-not-allowed bg-gray-50'
+                  )}
+                />
               </div>
             </div>
 
@@ -581,7 +662,13 @@ export default function StudySessionFloatingButton() {
                   <input
                     type="checkbox"
                     checked={theoryFinished}
-                    onChange={e => setTheoryFinished(e.target.checked)}
+                    onChange={e => {
+                      const checked = e.target.checked;
+                      setTheoryFinished(checked);
+                      if (checked) {
+                        setActiveCategories(prev => ({ ...prev, videoaulas: true, paginas: true }));
+                      }
+                    }}
                     className="rounded border-primary text-primary focus:ring-primary h-4 w-4"
                   />
                   Teoria Finalizada
@@ -619,35 +706,16 @@ export default function StudySessionFloatingButton() {
               )}
             </div>
 
-            <Accordion
-              value={openAccordions}
-              onValueChange={(val: string[]) => setOpenAccordions(val)}
-              className="w-full space-y-3 pt-2"
-            >
-              {/* ACCORDION: VIDEOAULAS */}
-              <AccordionItem value="videoaulas" className="border-2 border-secondary-foreground/20 rounded-sm bg-blue-50/10 overflow-hidden">
-                <div className="flex items-center pl-4 w-full">
-                  <label className="flex items-center cursor-pointer z-10 py-3 shrink-0" title="Ativar métricas de Videoaulas">
-                    <input
-                      type="checkbox"
-                      checked={activeCategories.videoaulas}
-                      onChange={() => toggleCategory('videoaulas')}
-                      className="h-4 w-4 rounded border-primary text-primary focus:ring-primary cursor-pointer"
-                    />
-                  </label>
-                  {/* Div wrapper com flex-1 para forçar o h3 interno do Shadcn a expandir */}
-                  <div className="flex-1 min-w-0">
-                    <AccordionTrigger className="w-full hover:no-underline py-3 pl-3 pr-4">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase">
-                        <Video className={cn("h-4 w-4", activeCategories.videoaulas ? "text-primary" : "text-gray-400")} />
-                        <span className={cn(activeCategories.videoaulas ? "text-gray-700" : "text-gray-400")}>
-                          Videoaulas (Título / Minutagem)
-                        </span>
-                      </div>
-                    </AccordionTrigger>
+            {/* CAMPOS DINÂMICOS BASEADOS NA CATEGORIA SELECIONADA */}
+            <div className="space-y-3 pt-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase">Métricas da Seção</p>
+
+              {isVideo && (
+                <div className="border-2 border-primary/20 rounded-sm bg-blue-50/10 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-gray-700">
+                    <Video className="h-4 w-4 text-primary" />
+                    <span>Videoaulas (Título / Minutagem)</span>
                   </div>
-                </div>
-                <AccordionContent className={cn("pb-4 px-4 transition-all", !activeCategories.videoaulas && "opacity-40 pointer-events-none grayscale")}>
                   <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
                     <div className="w-full sm:w-1/2 space-y-1">
                       <Label className="text-[10px] uppercase text-gray-500 font-semibold">Título do Vídeo</Label>
@@ -682,32 +750,15 @@ export default function StudySessionFloatingButton() {
                       </div>
                     </div>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* ACCORDION: PÁGINAS */}
-              <AccordionItem value="paginas" className="border-2 border-secondary-foreground/20 rounded-sm bg-blue-50/10 overflow-hidden">
-                <div className="flex items-center pl-4 w-full">
-                  <label className="flex items-center cursor-pointer z-10 py-3 shrink-0" title="Ativar métricas de Leitura">
-                    <input
-                      type="checkbox"
-                      checked={activeCategories.paginas}
-                      onChange={() => toggleCategory('paginas')}
-                      className="h-4 w-4 rounded border-primary text-primary focus:ring-primary cursor-pointer"
-                    />
-                  </label>
-                  <div className="flex-1 min-w-0">
-                    <AccordionTrigger className="w-full hover:no-underline py-3 pl-3 pr-4">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase">
-                        <BookOpen className={cn("h-4 w-4", activeCategories.paginas ? "text-primary" : "text-gray-400")} />
-                        <span className={cn(activeCategories.paginas ? "text-gray-700" : "text-gray-400")}>
-                          Páginas Lidas (Início / Fim)
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                  </div>
                 </div>
-                <AccordionContent className={cn("pb-4 px-4 transition-all", !activeCategories.paginas && "opacity-40 pointer-events-none grayscale")}>
+              )}
+
+              {isPaginas && (
+                <div className="border-2 border-primary/20 rounded-sm bg-blue-50/10 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-gray-700">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    <span>Páginas Lidas (Início / Fim)</span>
+                  </div>
                   <div className="flex justify-center items-center gap-3">
                     <div className="flex flex-col items-center gap-1">
                       <span className="text-[10px] uppercase text-gray-500 font-semibold">Pág. Inicial</span>
@@ -731,32 +782,15 @@ export default function StudySessionFloatingButton() {
                       />
                     </div>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* ACCORDION: QUESTÕES */}
-              <AccordionItem value="questoes" className="border-2 border-secondary-foreground/20 rounded-sm bg-blue-50/10 overflow-hidden">
-                <div className="flex items-center pl-4 w-full">
-                  <label className="flex items-center cursor-pointer z-10 py-3 shrink-0" title="Ativar métricas de Questões">
-                    <input
-                      type="checkbox"
-                      checked={activeCategories.questoes}
-                      onChange={() => toggleCategory('questoes')}
-                      className="h-4 w-4 rounded border-primary text-primary focus:ring-primary cursor-pointer"
-                    />
-                  </label>
-                  <div className="flex-1 min-w-0">
-                    <AccordionTrigger className="w-full hover:no-underline py-3 pl-3 pr-4">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase">
-                        <HelpCircle className={cn("h-4 w-4", activeCategories.questoes ? "text-primary" : "text-gray-400")} />
-                        <span className={cn(activeCategories.questoes ? "text-gray-700" : "text-gray-400")}>
-                          Questões (Acertos / Erros)
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                  </div>
                 </div>
-                <AccordionContent className={cn("pb-4 px-4 transition-all", !activeCategories.questoes && "opacity-40 pointer-events-none grayscale")}>
+              )}
+
+              {isExercicios && (
+                <div className="border-2 border-primary/20 rounded-sm bg-blue-50/10 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-gray-700">
+                    <HelpCircle className="h-4 w-4 text-primary" />
+                    <span>Questões (Acertos / Erros)</span>
+                  </div>
                   <div className="flex justify-center items-center gap-3">
                     <div className="flex flex-col items-center gap-1">
                       <span className="text-[10px] uppercase text-green-600 font-semibold">Acertos</span>
@@ -780,9 +814,21 @@ export default function StudySessionFloatingButton() {
                       />
                     </div>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+                </div>
+              )}
+
+              {isRevisoes && (
+                <div className="border-2 border-primary/20 rounded-sm bg-blue-50/10 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-gray-700">
+                    <RotateCcw className="h-4 w-4 text-primary" />
+                    <span>Revisões Realizadas</span>
+                  </div>
+                  <div className="text-center text-xs text-muted-foreground py-2">
+                    Esta sessão será registrada e contabilizada como estudo de Revisão.
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* COMENTÁRIOS */}
             <div className="space-y-1 pt-2">

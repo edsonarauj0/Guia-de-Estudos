@@ -12,14 +12,16 @@ import {
   Video,
   Trash2,
   AlertTriangle,
+  CheckCircle2,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { deleteSession, getSessions } from '@/lib/firestore';
+import { deleteSession, getSessions, getQuestionLogs, deleteQuestionLog, getReviewCards } from '@/lib/firestore';
 import { usePlanContext } from '@/contexts/PlanContext';
 import { formatDuration } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
-import type { SessionType, StudySession } from '@/types';
+import type { SessionType, StudySession, QuestionLog } from '@/types';
 import { Button } from '@/components/ui/button';
 import EditSessionModal from '@/components/sessions/EditSessionModal';
 import {
@@ -37,34 +39,97 @@ import {
 } from '@/components/ui/dialog';
 
 const SESSION_TYPES: Array<{
-  value: SessionType;
+  value: SessionType | 'questions_log';
   label: string;
   icon: typeof Video;
   className: string;
 }> = [
     { value: 'video', label: 'Videoaulas', icon: Video, className: 'text-sky-500' },
     { value: 'pdf', label: 'PDF / Livro', icon: FileText, className: 'text-emerald-500' },
-    { value: 'questions', label: 'Questões', icon: HelpCircle, className: 'text-amber-500' },
+    { value: 'questions', label: 'Sessão de Questões', icon: HelpCircle, className: 'text-amber-500' },
+    { value: 'questions_log', label: 'Registro de Questões', icon: CheckCircle2, className: 'text-purple-500' },
     { value: 'revision', label: 'Revisões', icon: RotateCcw, className: 'text-rose-500' },
   ];
+
+interface UnifiedActivity {
+  id: string;
+  date: string; // yyyy-MM-dd
+  timestamp: string;
+  subjectId: string;
+  subjectName: string;
+  subjectColor?: string;
+  topicName?: string;
+  type: string;
+  durationMinutes: number;
+  subtitle: string;
+  isQuestionLog: boolean;
+  questionStats?: { correct: number; total: number };
+  originalSession?: StudySession;
+  originalLog?: QuestionLog;
+}
 
 export default function SessionsPage() {
   const { user } = useAuthContext();
   const { selectedPlanId, selectedPlan } = usePlanContext();
-  const [sessions, setSessions] = useState<StudySession[]>([]);
+  const [activities, setActivities] = useState<UnifiedActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingAll, setDeletingAll] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<'all' | SessionType>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [periodFilter, setPeriodFilter] = useState<'all' | '7' | '30' | '90'>('all');
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !selectedPlanId) {
+      setActivities([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const fetchedSessions = selectedPlanId ? await getSessions(user.uid, selectedPlanId) : [];
-      setSessions(fetchedSessions);
+      const [fetchedSessions, fetchedLogs] = await Promise.all([
+        getSessions(user.uid, selectedPlanId),
+        getQuestionLogs(user.uid, selectedPlanId),
+      ]);
+
+      const mappedSessions: UnifiedActivity[] = fetchedSessions.map(s => ({
+        id: s.id,
+        date: s.startedAt.slice(0, 10),
+        timestamp: s.startedAt,
+        subjectId: s.subjectId,
+        subjectName: s.subjectName,
+        topicName: s.topicName,
+        type: s.type,
+        durationMinutes: s.durationMinutes,
+        subtitle: `${s.type === 'video' ? 'Videoaula' : s.type === 'pdf' ? 'PDF/Livro' : s.type === 'questions' ? 'Questões' : 'Revisão'} · ${s.subjectName}${s.videoTitle ? ` · ${s.videoTitle}` : ''}`,
+        isQuestionLog: false,
+        originalSession: s,
+      }));
+
+      const mappedLogs: UnifiedActivity[] = fetchedLogs.map(l => {
+        const accuracy = l.total > 0 ? ((l.correct / l.total) * 100).toFixed(0) : '0';
+        return {
+          id: l.id,
+          date: l.date,
+          timestamp: l.createdAt || `${l.date}T12:00:00.000Z`,
+          subjectId: l.subjectId,
+          subjectName: l.subjectName,
+          subjectColor: l.subjectColor,
+          topicName: l.topicName,
+          type: 'questions_log',
+          durationMinutes: 0,
+          subtitle: `Questões (${l.sessionType === 'exam' ? 'Simulado' : l.sessionType === 'review' ? 'Revisão' : 'Prática'}) · ${l.subjectName} · ${l.correct}/${l.total} (${accuracy}%)`,
+          isQuestionLog: true,
+          questionStats: { correct: l.correct, total: l.total },
+          originalLog: l,
+        };
+      });
+
+      const combined = [...mappedSessions, ...mappedLogs].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+
+      setActivities(combined);
     } finally {
       setLoading(false);
     }
@@ -74,44 +139,70 @@ export default function SessionsPage() {
     loadData();
   }, [loadData]);
 
-  const executeDeleteAll = async () => {
-    if (sessions.length === 0) return;
-    setDeletingAll(true);
+  const handleDeleteItem = async (act: UnifiedActivity) => {
+    if (!confirm('Deseja realmente excluir este registro?')) return;
     try {
-      await Promise.all(sessions.map(session => deleteSession(session.id)));
-      setSessions([]);
-      toast.success('Todos os registros foram excluídos com sucesso.');
+      if (act.isQuestionLog && act.originalLog) {
+        await deleteQuestionLog(act.originalLog.id);
+      } else if (act.originalSession) {
+        await deleteSession(act.originalSession.id);
+      }
+      toast.success('Registro excluído com sucesso.');
+      loadData();
     } catch (error) {
       console.error(error);
-      toast.error('Erro ao excluir os registros.');
-    } finally {
-      setDeletingAll(false);
-      setConfirmDeleteOpen(false);
+      toast.error('Erro ao excluir o registro.');
     }
   };
 
-  const filteredSessions = useMemo(() => sessions.filter(session => {
-    if (typeFilter !== 'all' && session.type !== typeFilter) return false;
+  const executeDeleteAll = async () => {
+    if (!user || !selectedPlanId) return;
+    setDeletingAll(true);
+    try {
+      const [fetchedSessions, fetchedLogs] = await Promise.all([
+        getSessions(user.uid, selectedPlanId),
+        getQuestionLogs(user.uid, selectedPlanId),
+      ]);
+
+      await Promise.all([
+        ...fetchedSessions.map(s => deleteSession(s.id)),
+        ...fetchedLogs.map(l => deleteQuestionLog(l.id)),
+      ]);
+
+      setActivities([]);
+      toast.success('Histórico completo excluído com sucesso.');
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao excluir o histórico.');
+    } finally {
+      setDeletingAll(false);
+      setConfirmDeleteOpen(false);
+      loadData();
+    }
+  };
+
+  const filteredActivities = useMemo(() => activities.filter(act => {
+    if (typeFilter !== 'all' && act.type !== typeFilter) return false;
     if (periodFilter === 'all') return true;
     const since = new Date();
     since.setDate(since.getDate() - Number(periodFilter));
-    return new Date(session.startedAt) >= since;
-  }), [sessions, typeFilter, periodFilter]);
+    return new Date(act.timestamp) >= since;
+  }), [activities, typeFilter, periodFilter]);
 
-  const groupedSessions = filteredSessions.reduce((groups, session) => {
-    const date = format(new Date(session.startedAt), 'yyyy-MM-dd');
+  const groupedActivities = filteredActivities.reduce((groups, act) => {
+    const date = act.date;
     if (!groups[date]) groups[date] = [];
-    groups[date].push(session);
+    groups[date].push(act);
     return groups;
-  }, {} as Record<string, StudySession[]>);
+  }, {} as Record<string, UnifiedActivity[]>);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const totalMinutes = filteredSessions.reduce((total, session) => total + session.durationMinutes, 0);
-  const todayMinutes = (groupedSessions[todayStr] ?? []).reduce(
-    (total, session) => total + session.durationMinutes,
+  const totalMinutes = filteredActivities.reduce((total, act) => total + act.durationMinutes, 0);
+  const todayMinutes = (groupedActivities[todayStr] ?? []).reduce(
+    (total, act) => total + act.durationMinutes,
     0
   );
-  const studiedSubjects = new Set(filteredSessions.map(session => session.subjectId)).size;
+  const studiedSubjects = new Set(filteredActivities.map(act => act.subjectId)).size;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -146,8 +237,8 @@ export default function SessionsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={typeFilter} onValueChange={value => setTypeFilter((value ?? 'all') as typeof typeFilter)}>
-            <SelectTrigger className="w-36">
+          <Select value={typeFilter} onValueChange={value => setTypeFilter(value ?? 'all')}>
+            <SelectTrigger className="w-44">
               <SelectValue placeholder="Categoria">
                 {(value: string) =>
                   value === 'all'
@@ -165,10 +256,12 @@ export default function SessionsPage() {
               ))}
             </SelectContent>
           </Select>
+
           <Button variant="outline" onClick={loadData} disabled={loading || deletingAll}>
             Atualizar
           </Button>
-          {sessions.length > 0 && (
+
+          {activities.length > 0 && (
             <Button
               variant="destructive"
               onClick={() => setConfirmDeleteOpen(true)}
@@ -200,27 +293,6 @@ export default function SessionsPage() {
         </div>
       </div>
 
-      <div className="glass rounded-sm p-5">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Tempo por tipo
-        </p>
-        <div className="grid gap-3 md:grid-cols-4">
-          {SESSION_TYPES.map(({ className, icon: Icon, label, value }) => {
-            const minutesByType = filteredSessions
-              .filter(session => session.type === value)
-              .reduce((total, session) => total + session.durationMinutes, 0);
-
-            return (
-              <div key={value} className="rounded-sm border border-border bg-background/50 p-4">
-                <Icon className={cn('mb-3 h-5 w-5', className)} />
-                <p className="font-semibold">{formatDuration(minutesByType)}</p>
-                <p className="text-sm text-muted-foreground">{label}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       <div className="glass rounded-sm p-6">
         <div className="mb-4 flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
@@ -233,17 +305,17 @@ export default function SessionsPage() {
               <div key={item} className="h-16 animate-pulse rounded-sm bg-muted" />
             ))}
           </div>
-        ) : filteredSessions.length === 0 ? (
+        ) : filteredActivities.length === 0 ? (
           <div className="rounded-sm border border-dashed border-border p-10 text-center">
             <Clock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="font-medium text-foreground">Nenhuma sessão registrada</p>
+            <p className="font-medium text-foreground">Nenhuma atividade registrada</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Use o botão flutuante “Estudar” para iniciar seu primeiro registro.
+              Suas sessões de estudo, revisões e registros de questões aparecerão aqui.
             </p>
           </div>
         ) : (
           <div className="space-y-5">
-            {Object.entries(groupedSessions).map(([date, daySessions]) => (
+            {Object.entries(groupedActivities).map(([date, dayActs]) => (
               <section key={date}>
                 <div className="mb-2 flex items-center gap-2">
                   <div className="h-px flex-1 bg-border" />
@@ -256,34 +328,63 @@ export default function SessionsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {daySessions.map(session => {
-                    const type = SESSION_TYPES.find(item => item.value === session.type) ?? SESSION_TYPES[0];
-                    const Icon = type.icon;
+                  {dayActs.map(act => {
+                    const typeConfig = SESSION_TYPES.find(item => item.value === act.type) ?? SESSION_TYPES[0];
+                    const Icon = typeConfig.icon;
 
                     return (
                       <div
-                        key={session.id}
-                        onClick={() => setEditingSession(session)}
-                        className="flex cursor-pointer items-center gap-3 rounded-sm bg-background/50 px-4 py-3 transition-colors hover:bg-muted/60"
+                        key={act.id}
+                        className="flex items-center gap-3 rounded-sm bg-background/50 px-4 py-3 transition-colors hover:bg-muted/60"
                       >
                         <div className="rounded-sm border border-border bg-muted/50 p-2">
-                          <Icon className={cn('h-4 w-4', type.className)} />
+                          <Icon className={cn('h-4 w-4', typeConfig.className)} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-foreground">
-                            {session.topicName ?? session.subjectName}
+                            {act.topicName ?? act.subjectName}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
-                            {type.label} · {session.subjectName}
-                            {session.videoTitle ? ` · ${session.videoTitle}` : ''}
-                            {session.videoStartedAt && session.videoEndedAt ? ` (${session.videoStartedAt}–${session.videoEndedAt})` : ''}
+                            {act.subtitle}
                           </p>
                         </div>
-                        <div className="shrink-0 text-right">
-                          <p className="text-sm font-bold">{formatDuration(session.durationMinutes)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(session.startedAt), 'HH:mm')}
-                          </p>
+                        <div className="shrink-0 text-right flex items-center gap-4">
+                          <div>
+                            {act.isQuestionLog ? (
+                              <p className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                                {act.questionStats?.correct} / {act.questionStats?.total} acertos
+                              </p>
+                            ) : (
+                              <p className="text-sm font-bold">{formatDuration(act.durationMinutes)}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(act.timestamp), 'HH:mm')}
+                            </p>
+                          </div>
+                          
+                          {/* Botões de Ação por Linha */}
+                          <div className="flex items-center gap-1">
+                            {act.originalSession && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                onClick={() => setEditingSession(act.originalSession!)}
+                                title="Editar sessão"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDeleteItem(act)}
+                              title="Excluir registro"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -295,7 +396,7 @@ export default function SessionsPage() {
         )}
       </div>
 
-      {/* Modal de Confirmação do Shadcn */}
+      {/* Modal de Confirmação */}
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -306,14 +407,14 @@ export default function SessionsPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Tem certeza que deseja excluir <strong>TODOS os {sessions.length} registros de estudo</strong> deste planejamento? Esta ação é irreversível e zerará seu progresso de horas acumuladas.
+              Tem certeza que deseja excluir <strong>todos os registros de estudo, questões e revisões</strong> deste planejamento? Esta ação é irreversível.
             </p>
             <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)} disabled={deletingAll}>
                 Cancelar
               </Button>
               <Button variant="destructive" onClick={executeDeleteAll} disabled={deletingAll}>
-                {deletingAll ? 'Excluindo tudo...' : 'Sim, excluir tudo'}
+                {deletingAll ? 'Excluindo...' : 'Sim, excluir tudo'}
               </Button>
             </div>
           </div>

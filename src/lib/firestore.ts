@@ -359,10 +359,30 @@ export async function addTopicToReviewQueue(
 
 export async function submitReview(cardId: string, card: ReviewCard, quality: SM2Quality): Promise<void> {
   const result = calculateSM2(card, quality);
+  const now = new Date().toISOString();
+  
   await updateReviewCard(cardId, {
     ...result,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
   });
+
+  // Registra automaticamente a revisão no histórico geral de estudos
+  try {
+    await addDoc(collection(db, 'sessions'), {
+      userId: card.userId,
+      planId: card.planId,
+      subjectId: card.subjectId,
+      subjectName: card.subjectName,
+      topicId: card.topicId,
+      topicName: card.topicName,
+      startedAt: now,
+      endedAt: now,
+      durationMinutes: 10, // Duração estimada para a revisão
+      type: 'revision',
+    });
+  } catch (error) {
+    console.error('Erro ao registrar sessão de revisão no histórico', error);
+  }
 }
 
 // ─── EXAMS ────────────────────────────────────────────────────

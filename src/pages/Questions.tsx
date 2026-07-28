@@ -237,7 +237,7 @@ export default function Questions() {
 
         <div className="flex items-center gap-4 w-full md:w-auto">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger render={<Button className="gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all" />}>
+            <DialogTrigger render={<Button className="gap-2 transition-all" />}>
               <Plus className="w-4 h-4" />
               Registrar
             </DialogTrigger>
@@ -380,7 +380,7 @@ export default function Questions() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-card to-card/50 border-white/5 shadow-xl">
+        <Card className="bg-gradient-to-br from-card to-card/50 border-white/5 ">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Questões Hoje</CardTitle>
             <ListTodo className="h-4 w-4 text-primary" />
@@ -390,7 +390,7 @@ export default function Questions() {
           </CardContent>
         </Card>
         
-        <Card className="bg-gradient-to-br from-card to-card/50 border-white/5 shadow-xl">
+        <Card className="bg-gradient-to-br from-card to-card/50 border-white/5 ">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Acerto Hoje</CardTitle>
             <TrendingUp className={`h-4 w-4 ${stats.accuracyToday >= 70 ? 'text-green-500' : stats.accuracyToday >= 50 ? 'text-yellow-500' : 'text-red-500'}`} />
@@ -400,7 +400,7 @@ export default function Questions() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-card to-card/50 border-white/5 shadow-xl">
+        <Card className="bg-gradient-to-br from-card to-card/50 border-white/5 ">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Geral</CardTitle>
             <BarChart3 className="h-4 w-4 text-blue-500" />
@@ -410,7 +410,7 @@ export default function Questions() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-card to-card/50 border-white/5 shadow-xl">
+        <Card className="bg-gradient-to-br from-card to-card/50 border-white/5 ">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Acerto Geral</CardTitle>
             <CheckCircle2 className={`h-4 w-4 ${stats.accuracyAll >= 70 ? 'text-green-500' : stats.accuracyAll >= 50 ? 'text-yellow-500' : 'text-red-500'}`} />
@@ -427,7 +427,7 @@ export default function Questions() {
         {/* Left Column: Chart & Recent Logs */}
         <div className="lg:col-span-2 space-y-6">
           
-          <Card className="border-white/10 bg-card/40 backdrop-blur-md shadow-xl">
+          <Card className="border-white/10 bg-card/40 backdrop-blur-md ">
             <CardHeader>
               <CardTitle>Aproveitamento - Últimos 30 dias</CardTitle>
               <CardDescription>Evolução da sua taxa de acerto diária</CardDescription>
@@ -460,7 +460,7 @@ export default function Questions() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-card/40 backdrop-blur-md shadow-xl">
+          <Card className="border-white/10 bg-card/40 backdrop-blur-md ">
             <CardHeader>
               <CardTitle>Registros Recentes</CardTitle>
             </CardHeader>
@@ -522,7 +522,7 @@ export default function Questions() {
 
         {/* Right Column: Subjects Performance */}
         <div className="space-y-6">
-          <Card className="border-white/10 bg-card/40 backdrop-blur-md shadow-xl h-full">
+          <Card className="border-white/10 bg-card/40 backdrop-blur-md  h-full">
             <CardHeader>
               <CardTitle>Desempenho por Matéria</CardTitle>
               <CardDescription>Classificado pelos menores acertos</CardDescription>
