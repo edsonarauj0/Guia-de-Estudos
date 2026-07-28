@@ -2,11 +2,12 @@
 import {
   addMonths, eachDayOfInterval, endOfMonth,
   format, getDay, isSameMonth, parseISO, startOfMonth, subMonths,
+  startOfWeek, endOfWeek, addWeeks, subWeeks, // Adicionados imports de semana
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Clock,
-  Flag, Info, Layers3, Trophy, BookOpen, AlertCircle,
+  Flag, Info, Layers3, Trophy, AlertCircle,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { usePlanContext } from "@/contexts/PlanContext";
@@ -28,13 +29,10 @@ import {
   SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell,
+  TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+
 // ─── constants ────────────────────────────────────────────────
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
@@ -117,7 +115,6 @@ function DayCell({ day, inMonth, onClick }: {
         !day.isToday && !day.isExamDay && "border-border",
       ].filter(Boolean).join(" ")}
     >
-      {/* Top row: day number + badges */}
       <div className="mb-1 flex items-center gap-1">
         <span className={[
           "flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-[11px] font-bold",
@@ -141,7 +138,6 @@ function DayCell({ day, inMonth, onClick }: {
         )}
       </div>
 
-      {/* Past: mini progress bar */}
       {day.isPast && day.isStudyDay && (
         <div className="mb-1 flex items-center gap-1">
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
@@ -156,7 +152,6 @@ function DayCell({ day, inMonth, onClick }: {
         </div>
       )}
 
-      {/* Future: subject/topic blocks */}
       {!day.isPast && shown.length > 0 && (
         <div className="flex flex-col gap-0.5">
           {shown.map((s, i) => (
@@ -187,7 +182,6 @@ function DayCell({ day, inMonth, onClick }: {
         </div>
       )}
 
-      {/* Cycle ribbon on left edge */}
       {pal && !day.isPast && (
         <div
           className="pointer-events-none absolute bottom-0 left-0 top-0 w-0.5 rounded-l-sm"
@@ -215,7 +209,6 @@ function DayDetailDialog({ day, open, onClose }: {
           <DialogTitle className="capitalize">{label}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-1">
-          {/* Status badges */}
           <div className="flex flex-wrap gap-2">
             {day.isToday && <Badge variant="default">Hoje</Badge>}
             {day.isExamDay && <Badge variant="destructive" className="gap-1"><Trophy className="h-3 w-3" />Dia da Prova</Badge>}
@@ -232,7 +225,6 @@ function DayDetailDialog({ day, open, onClose }: {
             ))}
           </div>
 
-          {/* Historical */}
           {day.isPast && (
             <div className="rounded-sm border border-border bg-muted/40 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Histórico real</p>
@@ -247,7 +239,6 @@ function DayDetailDialog({ day, open, onClose }: {
             </div>
           )}
 
-          {/* Planned slots */}
           {!day.isPast && merged.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -296,15 +287,12 @@ function DayDetailDialog({ day, open, onClose }: {
 
 // ─── Cycle timeline ───────────────────────────────────────────
 
-
 function CycleTimeline({ summaries, examDate }: { summaries: CycleSummary[]; examDate?: string }) {
-  // Estado para controlar a página atual
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Quantidade de ciclos por página
+  const itemsPerPage = 5;
 
   if (summaries.length === 0) return null;
 
-  // Lógica de paginação
   const totalPages = Math.ceil(summaries.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const shown = summaries.slice(startIndex, startIndex + itemsPerPage);
@@ -385,7 +373,6 @@ function CycleTimeline({ summaries, examDate }: { summaries: CycleSummary[]; exa
         </Table>
       </div>
 
-      {/* Controles de Paginação */}
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between px-2">
           <p className="text-xs text-muted-foreground">
@@ -427,7 +414,23 @@ export default function CalendarPage() {
 
   const [activePlanId, setActivePlanId] = useState(globalPlanId ?? "");
   const [allPlans, setAllPlans] = useState<StudyPlan[]>(globalPlans ?? []);
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
+  
+  // Estado para armazenar a preferência de visualização (Semana ou Mês)
+  const [viewMode, setViewMode] = useState<"month" | "week">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("kofre_calendar_view");
+      if (saved === "month" || saved === "week") return saved;
+    }
+    return "month"; // Padrão
+  });
+
+  // Salva no localStorage sempre que alterar a visualização
+  useEffect(() => {
+    localStorage.setItem("kofre_calendar_view", viewMode);
+  }, [viewMode]);
+
+  const [baseDate, setBaseDate] = useState(new Date());
+  
   const [calendarPlan, setCalendarPlan] = useState<ReturnType<typeof buildCalendarPlan> | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
@@ -473,19 +476,54 @@ export default function CalendarPage() {
     loadData(id);
   };
 
-  // Calendar grid
-  const { weekRows } = useMemo(() => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
-    const firstDow = getDay(start);
-    const allDays = eachDayOfInterval({ start, end });
-    const padded: (Date | null)[] = [...Array(firstDow).fill(null), ...allDays];
-    const rem = padded.length % 7;
-    if (rem > 0) for (let i = 0; i < 7 - rem; i++) padded.push(null);
-    const rows: (Date | null)[][] = [];
-    for (let i = 0; i < padded.length; i += 7) rows.push(padded.slice(i, i + 7));
-    return { weekRows: rows };
-  }, [currentMonth]);
+  // Funções de navegação do calendário
+  const handlePrevDate = () => {
+    if (viewMode === "month") setBaseDate(d => subMonths(d, 1));
+    else setBaseDate(d => subWeeks(d, 1));
+  };
+  
+  const handleNextDate = () => {
+    if (viewMode === "month") setBaseDate(d => addMonths(d, 1));
+    else setBaseDate(d => addWeeks(d, 1));
+  };
+
+  // Cálculo da Grid e Label do Calendário
+  const { weekRows, dateLabel } = useMemo(() => {
+    if (viewMode === "month") {
+      const start = startOfMonth(baseDate);
+      const end = endOfMonth(baseDate);
+      const firstDow = getDay(start);
+      const allDays = eachDayOfInterval({ start, end });
+      const padded: (Date | null)[] = [...Array(firstDow).fill(null), ...allDays];
+      const rem = padded.length % 7;
+      if (rem > 0) for (let i = 0; i < 7 - rem; i++) padded.push(null);
+      const rows: (Date | null)[][] = [];
+      for (let i = 0; i < padded.length; i += 7) rows.push(padded.slice(i, i + 7));
+      
+      return { 
+        weekRows: rows, 
+        dateLabel: format(baseDate, "MMMM 'de' yyyy", { locale: ptBR }) 
+      };
+    } else {
+      // Visualização por Semana (Começa no Domingo)
+      const start = startOfWeek(baseDate, { weekStartsOn: 0 }); 
+      const end = endOfWeek(baseDate, { weekStartsOn: 0 });
+      const allDays = eachDayOfInterval({ start, end });
+      const rows = [allDays]; // Apenas 1 linha, sem dias nulos
+
+      const startMonth = format(start, "MMM", { locale: ptBR });
+      const endMonth = format(end, "MMM", { locale: ptBR });
+      
+      let label = "";
+      if (startMonth === endMonth) {
+         label = `${format(start, "d")} a ${format(end, "d 'de' MMMM", { locale: ptBR })}`;
+      } else {
+         label = `${format(start, "d 'de' MMM", { locale: ptBR })} a ${format(end, "d 'de' MMM", { locale: ptBR })}`;
+      }
+
+      return { weekRows: rows, dateLabel: label };
+    }
+  }, [baseDate, viewMode]);
 
   const selectedPlan = allPlans.find(p => p.id === activePlanId);
 
@@ -513,12 +551,9 @@ export default function CalendarPage() {
 
   const futureStudyDays = useMemo(() => {
     if (!calendarPlan) return 0;
-    const today = format(new Date(), "yyyy-MM-dd");
     return Array.from(calendarPlan.days.values())
       .filter(d => !d.isPast && d.isStudyDay && !d.isExamDay).length;
   }, [calendarPlan]);
-
-  const monthLabel = format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR });
 
   if (loading) {
     return (
@@ -605,15 +640,40 @@ export default function CalendarPage() {
 
       {/* Calendar */}
       <div className="glass rounded-sm p-3 sm:p-5">
-        {/* Month nav */}
-        <div className="mb-4 flex items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(m => subMonths(m, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="text-base font-semibold capitalize">{monthLabel}</h2>
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(m => addMonths(m, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        
+        {/* Month/Week nav */}
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between sm:justify-start gap-2">
+            <Button variant="ghost" size="icon" onClick={handlePrevDate}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="min-w-[160px] text-center text-base font-semibold capitalize">
+              {dateLabel}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={handleNextDate}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Toggle Semana/Mês */}
+          <div className="flex bg-muted p-1 rounded-md max-w-fit self-end sm:self-auto">
+            <button
+              onClick={() => setViewMode('week')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
+                viewMode === 'week' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Semana
+            </button>
+            <button
+              onClick={() => setViewMode('month')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
+                viewMode === 'month' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Mês
+            </button>
+          </div>
         </div>
 
         {/* Weekday headers */}
@@ -633,7 +693,10 @@ export default function CalendarPage() {
                 if (!date) return <div key={di} className="min-h-[96px]" />;
                 const dateStr = format(date, "yyyy-MM-dd");
                 const day = calendarPlan?.days.get(dateStr);
-                const inMonth = isSameMonth(date, currentMonth);
+                
+                // Na visualização de semana, queremos que todos os dias fiquem visíveis (ativos)
+                const inMonth = viewMode === "month" ? isSameMonth(date, baseDate) : true;
+                
                 if (!day) {
                   return (
                     <div
