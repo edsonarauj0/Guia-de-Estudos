@@ -17,6 +17,7 @@ import PlansPage from '@/pages/Plans';
 import QuestionsPage from '@/pages/Questions';
 import ReviewsPage from '@/pages/Reviews';
 import StudyCyclePage from '@/pages/StudyCycle';
+import StatisticsPage from '@/pages/Statistics';
 import { PlanProvider } from '@/contexts/PlanContext';
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
                   <Route path="/plans" element={<PlansPage />} />
                   <Route path="/questions" element={<QuestionsPage />} />
                   <Route path="/reviews" element={<ReviewsPage />} />
+                  <Route path="/statistics" element={<StatisticsPage />} />
                 </Route>
               </Route>
 

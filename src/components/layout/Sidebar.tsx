@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, BookOpen, BarChart3, PieChart, History,
   Settings, LogOut, Menu, X, ChevronRight, Moon, Sun,
-  FolderOpen, HelpCircle, RotateCcw
+  FolderOpen, HelpCircle, RotateCcw, LineChart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -43,6 +43,7 @@ export default function Sidebar() {
     { to: '/sessions', icon: History, label: 'Histórico' },
     { to: '/questions', icon: HelpCircle, label: 'Questões' },
     { to: '/reviews', icon: RotateCcw, label: 'Revisões', badge: reviewCount },
+    { to: '/statistics', icon: LineChart, label: 'Estatísticas' },
     { to: '/exams', icon: BarChart3, label: 'Simulados' },
     { to: '/settings', icon: Settings, label: 'Configurações' },
   ];

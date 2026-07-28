@@ -15,6 +15,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { usePlanContext } from '@/contexts/PlanContext';
 import {
   createSession,
+  createQuestionLog,
   getStudyPlans,
   getSubjects,
   getTopics,
@@ -241,6 +242,28 @@ export default function StudySessionFloatingButton() {
       if (activeCycleId) sessionData.cycleId = activeCycleId;
 
       await createSession(sessionData);
+
+      // ── Auto-create QuestionLog se o usuário preencheu questões ──
+      const totalQuestoes = correctQuestions + wrongQuestions;
+      if (totalQuestoes > 0) {
+        const dateStr = (sessionStart ?? new Date().toISOString()).slice(0, 10);
+        await createQuestionLog({
+          userId: user.uid,
+          planId: selectedPlanId,
+          subjectId: selectedSubjectId,
+          subjectName: selectedSubject?.name ?? '',
+          subjectColor: selectedSubject?.color ?? '#6366f1',
+          ...(selectedTopic?.id ? { topicId: selectedTopic.id } : {}),
+          ...(selectedTopic?.name ? { topicName: selectedTopic.name } : {}),
+          date: dateStr,
+          total: totalQuestoes,
+          correct: correctQuestions,
+          wrong: wrongQuestions,
+          ...(comments.trim() ? { notes: comments.trim() } : {}),
+          sessionType: 'practice',
+          createdAt: new Date().toISOString(),
+        });
+      }
       if (category === 'Teoria' && theoryFinished && selectedTopic) {
         const now = new Date().toISOString();
         const progress = {
