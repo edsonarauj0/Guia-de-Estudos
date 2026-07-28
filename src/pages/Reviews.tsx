@@ -269,21 +269,6 @@ export default function Reviews() {
           </p>
         </div>
 
-        <Select
-          items={selectItems}
-          value={selectedPlanId}
-          onValueChange={value => value && setSelectedPlanId(String(value))}
-        >
-          <SelectTrigger className="w-full sm:w-64" aria-label="Selecionar planejamento">
-            <SelectValue placeholder="Selecionar planejamento" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os planejamentos</SelectItem>
-            {plans.map(plan => (
-              <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </header>
 
       <section className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5 sm:p-7">

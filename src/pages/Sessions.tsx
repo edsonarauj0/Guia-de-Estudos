@@ -32,11 +32,11 @@ const SESSION_TYPES: Array<{
   icon: typeof Video;
   className: string;
 }> = [
-  { value: 'video', label: 'Videoaulas', icon: Video, className: 'text-sky-500' },
-  { value: 'pdf', label: 'PDF / Livro', icon: FileText, className: 'text-emerald-500' },
-  { value: 'questions', label: 'Questões', icon: HelpCircle, className: 'text-amber-500' },
-  { value: 'revision', label: 'Revisões', icon: RotateCcw, className: 'text-rose-500' },
-];
+    { value: 'video', label: 'Videoaulas', icon: Video, className: 'text-sky-500' },
+    { value: 'pdf', label: 'PDF / Livro', icon: FileText, className: 'text-emerald-500' },
+    { value: 'questions', label: 'Questões', icon: HelpCircle, className: 'text-amber-500' },
+    { value: 'revision', label: 'Revisões', icon: RotateCcw, className: 'text-rose-500' },
+  ];
 
 export default function SessionsPage() {
   const { user } = useAuthContext();
@@ -96,12 +96,45 @@ export default function SessionsPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <Select value={periodFilter} onValueChange={value => setPeriodFilter((value ?? 'all') as typeof periodFilter)}>
-            <SelectTrigger className="w-36"><SelectValue placeholder="Período" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todo período</SelectItem><SelectItem value="7">Últimos 7 dias</SelectItem><SelectItem value="30">Últimos 30 dias</SelectItem><SelectItem value="90">Últimos 90 dias</SelectItem></SelectContent>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Período">
+                {(value: string) => {
+                  const labels: Record<string, string> = {
+                    all: 'Todo período',
+                    '7': 'Últimos 7 dias',
+                    '30': 'Últimos 30 dias',
+                    '90': 'Últimos 90 dias',
+                  }
+                  return labels[value] ?? 'Período'
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todo período</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="90">Últimos 90 dias</SelectItem>
+            </SelectContent>
           </Select>
+
           <Select value={typeFilter} onValueChange={value => setTypeFilter((value ?? 'all') as typeof typeFilter)}>
-            <SelectTrigger className="w-36"><SelectValue placeholder="Categoria" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todas categorias</SelectItem>{SESSION_TYPES.map(type => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Categoria">
+                {(value: string) =>
+                  value === 'all'
+                    ? 'Todas categorias'
+                    : SESSION_TYPES.find(t => t.value === value)?.label ?? 'Categoria'
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas categorias</SelectItem>
+              {SESSION_TYPES.map(type => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
           <Button variant="outline" onClick={loadData} disabled={loading}>
             Atualizar

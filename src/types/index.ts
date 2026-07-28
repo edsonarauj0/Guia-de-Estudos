@@ -56,7 +56,7 @@ export interface Subject {
 // ─── TOPIC (subcoleção de subjects) ──────────────────────────
 // Path: studyPlans/{planId}/subjects/{subjectId}/topics/{topicId}
 export type ProgressStatus = 'not_started' | 'in_progress' | 'completed';
-export type MediaType = 'video' | 'pdf' | 'questions' | 'revision';
+export type MediaType = 'video' | 'questions' | 'revision' | 'reading' | 'pdf';
 
 export interface MediaProgress {
   status: ProgressStatus;

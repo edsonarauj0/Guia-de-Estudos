@@ -236,18 +236,6 @@ export default function Questions() {
         </div>
 
         <div className="flex items-center gap-4 w-full md:w-auto">
-          <Select value={selectedPlanIdFilter} onValueChange={(v) => setSelectedPlanIdFilter(v as string)}>
-            <SelectTrigger className="w-full md:w-[200px] bg-background/50 backdrop-blur">
-              <SelectValue placeholder="Filtrar por plano" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Planos</SelectItem>
-              {plans.map(p => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger render={<Button className="gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all" />}>
               <Plus className="w-4 h-4" />

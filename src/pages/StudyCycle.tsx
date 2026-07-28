@@ -211,10 +211,6 @@ export default function StudyCyclePage() {
         <p className="text-sm text-muted-foreground mt-1">Monte cada sprint escolhendo matérias, tópicos e duração.</p>
       </div>
       <div className="flex gap-3">
-        <Select value={planId || undefined} onValueChange={value => { if (value) { selectPlan(value); load(value); } }}>
-          <SelectTrigger className="min-w-48"><SelectValue placeholder="Planejamento" /></SelectTrigger>
-          <SelectContent>{plans.map(plan => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}</SelectContent>
-        </Select>
         <Button onClick={openCycleDialog}><Plus className="w-4 h-4" /> {activeCycle ? 'Novo ciclo' : 'Criar ciclo'}</Button>
       </div>
     </div>

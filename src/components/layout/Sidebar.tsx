@@ -10,8 +10,8 @@ import {
   FolderOpen, HelpCircle, RotateCcw, LineChart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePlanContext } from '@/contexts/PlanContext';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../ui/select';
 
 export default function Sidebar() {
   const { user, profile, logout } = useAuthContext();
@@ -95,10 +95,21 @@ export default function Sidebar() {
           {plans.length > 0 && (
             <div className="mt-4">
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Planejamento ativo</p>
-              <Select value={selectedPlanId ?? undefined} onValueChange={value => value && selectPlan(value)}>
-                <SelectTrigger className="h-9 w-full text-xs"><SelectValue placeholder="Selecionar planejamento" /></SelectTrigger>
+              <Select value={selectedPlanId} onValueChange={value => value && selectPlan(value)}>
+                <SelectTrigger className="h-9 w-full text-xs">
+                  <SelectValue placeholder="Selecione um plano">
+                    {(value: string) => plans.find(p => p.id === value)?.name ?? "Selecione um plano"}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
-                  {plans.map(plan => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}
+                  <SelectGroup>
+                    <SelectLabel>Planos</SelectLabel>
+                    {plans.map(plan => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>

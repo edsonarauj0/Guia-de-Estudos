@@ -391,24 +391,6 @@ export default function SubjectsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Select items={plans.map(plan => ({ value: plan.id, label: plan.name }))} 
-          value={activePlanId ?? undefined} 
-          onValueChange={(value) => value && handlePlanChange(value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o planejamento" />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              <SelectGroup>
-                {plans.map(plan => (
-                  <SelectItem key={plan.id} value={plan.id}>
-                    {plan.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-
-
           <Button variant="outline" size="sm" onClick={() => setPlanDialog(true)}>
             <Plus className="w-4 h-4" />
             Novo Planejamento
