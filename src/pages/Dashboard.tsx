@@ -5,6 +5,7 @@ import { getSubjects, getTopics, getSessions, getQuestionLogs, getReviewCards, g
 import { calculatePlannerStats, calcTodayHours, calcStreak } from '@/lib/plannerEngine';
 import Countdown from '@/components/dashboard/Countdown';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
+import StudyConsistencyCard from '@/components/dashboard/StudyConsistencyCard';
 import SubjectProgressChart from '@/components/dashboard/SubjectProgressChart';
 import { Progress } from '@/components/ui/progress';
 import type { PlannerStats, StudyCycle, StudySession } from '@/types';
@@ -108,6 +109,142 @@ export default function DashboardPage() {
     })();
   }, [user, profile, selectedPlanId]);
 
+  function CycleSequenceTable({ items }: {
+    items: { id: string; subjectName: string; subjectColor: string; topicName: string; plannedMinutes: number; actualMinutes: number }[];
+  }) {
+    if (items.length === 0) return null;
+
+    return (
+      <div className="glass rounded-2xl p-5 border border-border/60">
+        <div className="mb-3">
+          <h2 className="font-semibold">Sequência dos estudos</h2>
+          <p className="text-xs text-muted-foreground mt-1">Matéria e tópico de cada sessão planejada.</p>
+        </div>
+        <div className="max-h-[360px] overflow-auto rounded-lg border border-border/70">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead className="sticky top-0 z-10 bg-card text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="w-12 px-3 py-2.5 font-medium">#</th>
+                <th className="px-3 py-2.5 font-medium">Matéria</th>
+                <th className="px-3 py-2.5 font-medium">Tópico</th>
+                <th className="px-3 py-2.5 text-right font-medium">Planejado</th>
+                <th className="px-3 py-2.5 text-right font-medium">Realizado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {items.map((item, index) => {
+                const done = item.actualMinutes >= item.plannedMinutes;
+                return (
+                  <tr key={item.id} className="bg-background/30 hover:bg-muted/40">
+                    <td className="px-3 py-2">
+                      <span
+                        className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
+                        style={{ backgroundColor: `${item.subjectColor}26`, color: item.subjectColor }}
+                      >
+                        {index + 1}
+                      </span>
+                    </td>
+                    <td className="max-w-[160px] px-3 py-2 font-medium truncate" title={item.subjectName}>{item.subjectName}</td>
+                    <td className="max-w-[260px] px-3 py-2 text-muted-foreground truncate" title={item.topicName}>{item.topicName}</td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap text-muted-foreground">{formatDuration(item.plannedMinutes)}</td>
+                    <td className={done ? 'px-3 py-2 text-right whitespace-nowrap font-medium text-emerald-500' : 'px-3 py-2 text-right whitespace-nowrap text-muted-foreground'}>
+                      {formatDuration(item.actualMinutes)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+  const cycleChartData = useMemo(() => {
+    if (!activeCycle) return {
+      planned: [] as { name: string; value: number; color: string }[],
+      actual: [] as { name: string; value: number; color: string }[],
+      totalPlanned: 0,
+      totalStudied: 0,
+      items: [] as { id: string; subjectName: string; subjectColor: string; topicName: string; plannedMinutes: number; actualMinutes: number }[],
+    };
+
+    const studiedByItem = new Map<string, number>();
+    activeCycle.items.forEach(item => studiedByItem.set(item.id, 0));
+
+    const relevantSessions = cycleSessions.filter(session =>
+      session.cycleId === activeCycle.id ||
+      (!session.cycleId && new Date(session.startedAt) >= new Date(activeCycle.createdAt))
+    );
+
+    for (const session of relevantSessions) {
+      const exactItem = activeCycle.items.find(item => item.topicId === session.topicId);
+      const subjectItems = activeCycle.items.filter(item => item.subjectId === session.subjectId);
+      const targetItem = exactItem
+        ?? subjectItems.find(item => (studiedByItem.get(item.id) ?? 0) < item.plannedMinutes)
+        ?? subjectItems[0];
+      if (targetItem) studiedByItem.set(targetItem.id, (studiedByItem.get(targetItem.id) ?? 0) + session.durationMinutes);
+    }
+
+    return {
+      planned: activeCycle.items.map(item => ({ name: item.subjectName, value: item.plannedMinutes, color: item.subjectColor })),
+      actual: activeCycle.items.map(item => ({ name: item.subjectName, value: studiedByItem.get(item.id) ?? 0, color: item.subjectColor })),
+      totalPlanned: activeCycle.items.reduce((total, item) => total + item.plannedMinutes, 0),
+      totalStudied: [...studiedByItem.values()].reduce((total, value) => total + value, 0),
+      items: activeCycle.items.map(item => ({
+        id: item.id,
+        subjectName: item.subjectName,
+        subjectColor: item.subjectColor,
+        topicName: item.topicName,
+        plannedMinutes: item.plannedMinutes,
+        actualMinutes: studiedByItem.get(item.id) ?? 0,
+      })),
+    };
+  }, [activeCycle, cycleSessions]);
+
+  function CycleCard({ activeCycle, chartData }: {
+    activeCycle: StudyCycle | null;
+    chartData: { planned: { name: string; value: number; color: string }[]; actual: { name: string; value: number; color: string }[]; totalPlanned: number; totalStudied: number };
+  }) {
+    if (!activeCycle) {
+      return (
+        <div className="glass rounded-2xl p-6 flex flex-col items-center text-center border border-dashed">
+          <Target className="w-6 h-6 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">Nenhum ciclo ativo</p>
+          <Link to="/cycle" className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-border bg-transparent hover:bg-secondary transition-colors mt-3">
+            Criar ciclo
+          </Link>
+        </div>
+      );
+    }
+
+    const { planned, actual, totalPlanned, totalStudied } = chartData;
+
+    return (
+      <div className="glass rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Ciclo {activeCycle.cycleNumber ?? 1}</p>
+          <Link to="/cycle" className="text-xs text-primary hover:underline">Ver ciclo</Link>
+        </div>
+        <div className="relative h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={planned} dataKey="value" nameKey="name" innerRadius="66%" outerRadius="82%" paddingAngle={2}>
+                {planned.map((item, index) => <Cell key={`${item.name}-${index}`} fill={item.color} fillOpacity={0.25} />)}
+              </Pie>
+              <Pie data={actual} dataKey="value" nameKey="name" innerRadius="43%" outerRadius="62%" paddingAngle={2}>
+                {actual.map((item, index) => <Cell key={`${item.name}-${index}`} fill={item.color} />)}
+              </Pie>
+              <Tooltip formatter={value => formatDuration(Number(value ?? 0))} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-xl font-bold">{formatDuration(totalStudied)}</span>
+            <span className="text-xs text-muted-foreground">de {formatDuration(totalPlanned)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -131,6 +268,7 @@ export default function DashboardPage() {
   const dailyQuestionsGoal = profile?.dailyGoalQuestions || 50;
   const questionsAccuracy = todayQuestions.total > 0 ? Math.round((todayQuestions.correct / todayQuestions.total) * 100) : 0;
   const questionsProgress = (todayQuestions.total / dailyQuestionsGoal) * 100;
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -224,6 +362,8 @@ export default function DashboardPage() {
         {/* Left column */}
         <div className="space-y-6">
           <Countdown examDate={stats?.plan?.examDate} examName={stats?.plan?.examName} />
+          <CycleCard activeCycle={activeCycle} chartData={cycleChartData} />
+          <CycleSequenceTable items={cycleChartData.items} />
 
           {/* Overall progress */}
           <div className="glass rounded-2xl p-6">
@@ -274,8 +414,11 @@ export default function DashboardPage() {
           )}
 
 
+          {/* Constância nos Estudos */}
+          <StudyConsistencyCard sessions={cycleSessions} />
+
           {/* Heatmap */}
-          <ActivityHeatmap sessions={[]} />
+          <ActivityHeatmap sessions={cycleSessions} />
 
           {/* Subject breakdown */}
           {stats && stats.subjectStats.length > 0 && (
