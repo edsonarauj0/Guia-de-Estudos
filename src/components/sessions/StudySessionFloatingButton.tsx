@@ -23,6 +23,9 @@ import {
   getTopics,
   getStudyCycles,
   updateTopic,
+  getReviewCard,
+  createReviewCard,
+  updateReviewCard,
 } from '@/lib/firestore';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { cn } from '@/lib/utils';
@@ -316,6 +319,48 @@ export default function StudySessionFloatingButton() {
           ...(isPaginas && { pdf: { ...selectedTopic.progress.pdf, status: 'completed' as const, completedAt: now } }),
         };
         await updateTopic(selectedPlanId, selectedSubjectId, selectedTopic.id, { progress });
+      }
+
+      // ── Cria ReviewCards se "PROGRAMAR REVISÕES" estiver ativo ──
+      if (programRevisions && selectedTopic && selectedSubject && revisions.length > 0) {
+        const sessionDateStr = (sessionStart ?? now).slice(0, 10);
+        const sessionDate = new Date(`${sessionDateStr}T12:00:00`);
+
+        for (const rev of revisions) {
+          const days = parseInt(rev, 10);
+          if (isNaN(days) || days < 1) continue;
+
+          const reviewDate = new Date(sessionDate);
+          reviewDate.setDate(reviewDate.getDate() + days);
+          const nextReview = reviewDate.toISOString().split('T')[0];
+
+          const existing = await getReviewCard(user.uid, selectedTopic.id);
+          if (existing) {
+            // Só atualiza se a nova data for anterior à existente
+            if (nextReview < existing.nextReview) {
+              await updateReviewCard(existing.id, { nextReview, updatedAt: now });
+            }
+          } else {
+            await createReviewCard({
+              userId: user.uid,
+              planId: selectedPlanId,
+              subjectId: selectedSubject.id,
+              subjectName: selectedSubject.name,
+              subjectColor: selectedSubject.color,
+              topicId: selectedTopic.id,
+              topicName: selectedTopic.name,
+              nextReview,
+              interval: days,
+              easeFactor: 2.5,
+              repetitions: 0,
+              lastReview: sessionDateStr,
+              createdAt: now,
+              updatedAt: now,
+            });
+            // Só cria um card por tópico (usa o menor intervalo para o primeiro)
+            break;
+          }
+        }
       }
       toast.success(`Sessão registrada: ${durationMinutes}min`);
       handleCancel();

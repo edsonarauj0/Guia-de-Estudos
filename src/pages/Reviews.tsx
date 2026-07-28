@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Clock3,
   Layers3,
+  Pencil,
   Play,
   RotateCcw,
   SkipForward,
@@ -16,6 +17,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import SimulateReviewModal from '@/components/reviews/SimulateReviewModal';
 import { toast } from 'sonner';
 
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -45,6 +47,7 @@ export default function Reviews() {
   const [sessionQueue, setSessionQueue] = useState<ReviewCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionCompletedCount, setSessionCompletedCount] = useState(0);
+  const [simulatingCard, setSimulatingCard] = useState<ReviewCard | null>(null);
 
   useEffect(() => {
     if (user) loadData();
@@ -442,15 +445,26 @@ export default function Reviews() {
                             {card.repetitions} repetiç{card.repetitions === 1 ? 'ão' : 'ões'} · {describeInterval(card.interval)}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => handleDelete(card.id)}
-                          aria-label={`Remover ${card.topicName} das revisões`}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                            onClick={() => setSimulatingCard(card)}
+                            aria-label={`Simular histórico de ${card.topicName}`}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => handleDelete(card.id)}
+                            aria-label={`Remover ${card.topicName} das revisões`}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -460,6 +474,13 @@ export default function Reviews() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <SimulateReviewModal
+        card={simulatingCard}
+        open={simulatingCard !== null}
+        onClose={() => setSimulatingCard(null)}
+        onApplied={() => { setSimulatingCard(null); loadData(); }}
+      />
     </div>
   );
 }

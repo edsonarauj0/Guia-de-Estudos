@@ -18,6 +18,7 @@ import QuestionsPage from '@/pages/Questions';
 import ReviewsPage from '@/pages/Reviews';
 import StudyCyclePage from '@/pages/StudyCycle';
 import StatisticsPage from '@/pages/Statistics';
+import CalendarPage from '@/pages/Calendar';
 import { PlanProvider } from '@/contexts/PlanContext';
 
 export default function App() {
@@ -46,6 +47,7 @@ export default function App() {
                   <Route path="/questions" element={<QuestionsPage />} />
                   <Route path="/reviews" element={<ReviewsPage />} />
                   <Route path="/statistics" element={<StatisticsPage />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
                 </Route>
               </Route>
 

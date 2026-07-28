@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, BookOpen, BarChart3, PieChart, History,
   Settings, LogOut, Menu, X, ChevronRight, Moon, Sun,
-  FolderOpen, HelpCircle, RotateCcw, LineChart
+  FolderOpen, HelpCircle, RotateCcw, LineChart, CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlanContext } from '@/contexts/PlanContext';
@@ -40,6 +40,7 @@ export default function Sidebar() {
     { to: '/plans', icon: FolderOpen, label: 'Planejamentos' },
     { to: '/subjects', icon: BookOpen, label: 'Matérias' },
     { to: '/cycle', icon: PieChart, label: 'Ciclo de estudos' },
+    { to: '/calendar', icon: CalendarDays, label: 'Calendário' },
     { to: '/sessions', icon: History, label: 'Histórico' },
     { to: '/questions', icon: HelpCircle, label: 'Questões' },
     { to: '/reviews', icon: RotateCcw, label: 'Revisões', badge: reviewCount },
