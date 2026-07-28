@@ -11,7 +11,7 @@ export default function Countdown({ examDate, examName }: CountdownProps) {
 
   if (!examDate) {
     return (
-      <div className="glass rounded-2xl p-6 border border-dashed border-border text-center">
+      <div className="glass rounded-sm p-6 border border-dashed border-border text-center">
         <p className="text-muted-foreground text-sm">Configure a data da prova nas</p>
         <p className="text-primary font-medium text-sm">Configurações</p>
       </div>
@@ -20,7 +20,7 @@ export default function Countdown({ examDate, examName }: CountdownProps) {
 
   if (isExpired) {
     return (
-      <div className="glass rounded-2xl p-6 text-center">
+      <div className="glass rounded-sm p-6 text-center">
         <p className="text-2xl font-bold text-primary">🎉 Prova realizada!</p>
         <p className="text-muted-foreground mt-1">{examName}</p>
       </div>
@@ -35,7 +35,7 @@ export default function Countdown({ examDate, examName }: CountdownProps) {
   ];
 
   return (
-    <div className="glass rounded-2xl p-6">
+    <div className="glass rounded-sm p-6">
       <div className="mb-4">
         <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Contagem regressiva</p>
         {examName && <p className="text-sm text-foreground font-medium mt-0.5">{examName}</p>}
@@ -45,7 +45,7 @@ export default function Countdown({ examDate, examName }: CountdownProps) {
         {units.map(({ value, label }) => (
           <div
             key={label}
-            className="bg-background/60 rounded-xl p-3 text-center border border-border/50"
+            className="bg-background/60 rounded-sm p-3 text-center border border-border/50"
           >
             <div
               className={cn(

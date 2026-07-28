@@ -100,19 +100,19 @@ export default function ExamsPage() {
       {/* Stats */}
       {exams.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="glass rounded-2xl p-5 border border-primary/20">
+          <div className="glass rounded-sm p-5 border border-primary/20">
             <Trophy className="w-5 h-5 text-primary mb-2" />
             <p className="text-2xl font-bold">{avgScore}%</p>
             <p className="text-xs text-muted-foreground">média de acertos</p>
           </div>
-          <div className="glass rounded-2xl p-5 border border-emerald-500/20">
+          <div className="glass rounded-sm p-5 border border-emerald-500/20">
             <TrendingUp className="w-5 h-5 text-emerald-400 mb-2" />
             <p className="text-2xl font-bold">
               {Math.round((exams[0]?.totalCorrect / exams[0]?.totalQuestions) * 100) ?? 0}%
             </p>
             <p className="text-xs text-muted-foreground">último simulado</p>
           </div>
-          <div className="glass rounded-2xl p-5 border border-blue-500/20">
+          <div className="glass rounded-sm p-5 border border-blue-500/20">
             <BarChart3 className="w-5 h-5 text-blue-400 mb-2" />
             <p className="text-2xl font-bold">{exams.length}</p>
             <p className="text-xs text-muted-foreground">simulados realizados</p>
@@ -122,7 +122,7 @@ export default function ExamsPage() {
 
       {/* Performance chart */}
       {exams.length > 1 && (
-        <div className="glass rounded-2xl p-6">
+        <div className="glass rounded-sm p-6">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-4">Evolução de Desempenho</p>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData}>
@@ -142,7 +142,7 @@ export default function ExamsPage() {
 
       {/* Exams list */}
       {exams.length === 0 ? (
-        <div className="glass rounded-2xl p-12 text-center border border-dashed">
+        <div className="glass rounded-sm p-12 text-center border border-dashed">
           <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-semibold text-foreground mb-2">Nenhum simulado registrado</h3>
           <p className="text-muted-foreground text-sm mb-6">Registre seus simulados para acompanhar sua evolução.</p>
@@ -153,7 +153,7 @@ export default function ExamsPage() {
           {exams.map(exam => {
             const pct = Math.round((exam.totalCorrect / exam.totalQuestions) * 100);
             return (
-              <div key={exam.id} className="glass rounded-xl p-5 card-hover">
+              <div key={exam.id} className="glass rounded-sm p-5 card-hover">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-semibold text-foreground">{exam.name}</h3>
@@ -206,7 +206,7 @@ export default function ExamsPage() {
               </div>
             </div>
             {eTotal && eCorrect && (
-              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-center">
+              <div className="bg-primary/10 border border-primary/20 rounded-sm p-3 text-center">
                 <p className="text-2xl font-bold gradient-text">
                   {Math.round((parseInt(eCorrect) / parseInt(eTotal)) * 100)}%
                 </p>

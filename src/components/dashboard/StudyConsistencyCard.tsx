@@ -95,7 +95,7 @@ export default function StudyConsistencyCard({ sessions }: StudyConsistencyCardP
   const canGoForward = offset > 0;
 
   return (
-    <div className="glass rounded-2xl p-5 border border-border/50">
+    <div className="glass rounded-sm p-5 border border-border/50">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export default function StudyConsistencyCard({ sessions }: StudyConsistencyCardP
           </p>
           <div className="group relative">
             <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-52 bg-popover border border-border rounded-lg p-2 text-xs text-muted-foreground shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-52 bg-popover border border-border rounded-sm p-2 text-xs text-muted-foreground shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
               Dias em que você registrou ao menos uma sessão de estudo.
             </div>
           </div>
@@ -161,7 +161,7 @@ export default function StudyConsistencyCard({ sessions }: StudyConsistencyCardP
             <div key={iso} className="group relative flex-shrink-0">
               <div
                 className={cn(
-                  'w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 cursor-default',
+                  'w-7 h-7 rounded-sm border-2 flex items-center justify-center transition-all duration-200 cursor-default',
                   studied
                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 hover:bg-emerald-500/30 hover:scale-110'
                     : 'bg-rose-500/10 border-rose-400/60 text-rose-400/70 hover:scale-110',
@@ -170,7 +170,7 @@ export default function StudyConsistencyCard({ sessions }: StudyConsistencyCardP
                 )}
               >
                 {studied ? (
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <div className="w-2 h-2 rounded-sm bg-emerald-500" />
                 ) : (
                   <svg viewBox="0 0 14 14" className="w-3.5 h-3.5" fill="none">
                     <line x1="3" y1="3" x2="11" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -181,7 +181,7 @@ export default function StudyConsistencyCard({ sessions }: StudyConsistencyCardP
 
               {/* Tooltip */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap">
-                <div className="bg-popover border border-border rounded-md px-2 py-1 text-xs shadow-md text-foreground">
+                <div className="bg-popover border border-border rounded-sm px-2 py-1 text-xs shadow-md text-foreground">
                   {format(new Date(iso + 'T12:00:00'), "dd 'de' MMM", { locale: ptBR })}
                   <br />
                   {studied ? (
@@ -201,13 +201,13 @@ export default function StudyConsistencyCard({ sessions }: StudyConsistencyCardP
       {/* Legend */}
       <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <div className="w-4 h-4 rounded-sm bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center">
+            <div className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
           </div>
           <span>Estudou</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-rose-500/10 border-2 border-rose-400/60 flex items-center justify-center">
+          <div className="w-4 h-4 rounded-sm bg-rose-500/10 border-2 border-rose-400/60 flex items-center justify-center">
             <svg viewBox="0 0 14 14" className="w-2.5 h-2.5 text-rose-400/70" fill="none">
               <line x1="3" y1="3" x2="11" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               <line x1="11" y1="3" x2="3" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -216,7 +216,7 @@ export default function StudyConsistencyCard({ sessions }: StudyConsistencyCardP
           <span>Não estudou</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-amber-400/10 border-2 border-amber-400/80" />
+          <div className="w-4 h-4 rounded-sm bg-amber-400/10 border-2 border-amber-400/80" />
           <span>Hoje</span>
         </div>
       </div>

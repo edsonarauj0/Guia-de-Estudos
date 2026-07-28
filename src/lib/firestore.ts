@@ -242,6 +242,14 @@ export async function createSession(data: Omit<StudySession, 'id'>): Promise<str
   return ref.id;
 }
 
+export async function updateSession(id: string, data: Partial<Omit<StudySession, 'id'>>): Promise<void> {
+  await updateDoc(doc(db, 'sessions', id), data as Record<string, unknown>);
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'sessions', id));
+}
+
 // ─── STUDY CYCLES ─────────────────────────────────────────────
 export async function getStudyCycles(userId: string, planId?: string): Promise<StudyCycle[]> {
   const constraints: any[] = [where('userId', '==', userId)];

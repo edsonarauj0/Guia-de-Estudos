@@ -84,7 +84,7 @@ export default function PlannerPage() {
   const activePlan = plans.find(plan => plan.id === activePlanId) ?? null;
 
   if (loading) {
-    return <div className="animate-pulse space-y-4">{[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-muted rounded-2xl" />)}</div>;
+    return <div className="animate-pulse space-y-4">{[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-muted rounded-sm" />)}</div>;
   }
 
   const radarData = (stats?.subjectStats ?? []).map(s => ({
@@ -125,29 +125,29 @@ export default function PlannerPage() {
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <Calendar className="w-12 h-12 text-muted-foreground" />
           <p className="text-muted-foreground text-center">Configure a data da prova nas Configurações para ativar o planejamento.</p>
-          <Link to="/settings" className="inline-flex items-center gap-1.5 h-10 px-4 py-2 font-medium rounded-md border border-border bg-transparent hover:bg-secondary transition-colors">Configurar</Link>
+          <Link to="/settings" className="inline-flex items-center gap-1.5 h-10 px-4 py-2 font-medium rounded-sm border border-border bg-transparent hover:bg-secondary transition-colors">Configurar</Link>
         </div>
       )}
 
       {!activePlan?.examDate || !stats ? null : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="glass rounded-2xl p-5 border border-primary/20">
+            <div className="glass rounded-sm p-5 border border-primary/20">
               <Target className="w-5 h-5 text-primary mb-2" />
               <p className="text-2xl font-bold">{stats.daysUntilExam}</p>
               <p className="text-xs text-muted-foreground">dias restantes</p>
             </div>
-            <div className="glass rounded-2xl p-5 border border-blue-500/20">
+            <div className="glass rounded-sm p-5 border border-blue-500/20">
               <Clock className="w-5 h-5 text-blue-400 mb-2" />
               <p className="text-2xl font-bold">{stats.totalAvailableHours.toFixed(0)}h</p>
               <p className="text-xs text-muted-foreground">horas disponíveis</p>
             </div>
-            <div className="glass rounded-2xl p-5 border border-emerald-500/20">
+            <div className="glass rounded-sm p-5 border border-emerald-500/20">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 mb-2" />
               <p className="text-2xl font-bold">{formatDuration(Math.round(stats.totalHoursStudied * 60))}</p>
               <p className="text-xs text-muted-foreground">já estudados</p>
             </div>
-            <div className="glass rounded-2xl p-5 border border-amber-500/20">
+            <div className="glass rounded-sm p-5 border border-amber-500/20">
               <TrendingUp className="w-5 h-5 text-amber-400 mb-2" />
               <p className="text-2xl font-bold">{stats.overallProgress}%</p>
               <p className="text-xs text-muted-foreground">progresso geral</p>
@@ -155,7 +155,7 @@ export default function PlannerPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="glass rounded-2xl p-6">
+            <div className="glass rounded-sm p-6">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-4">Radar de Progresso</p>
               <ResponsiveContainer width="100%" height={220}>
                 <RadarChart data={radarData}>
@@ -170,13 +170,13 @@ export default function PlannerPage() {
               </ResponsiveContainer>
             </div>
 
-            <div className="glass rounded-2xl p-6 space-y-4">
+            <div className="glass rounded-sm p-6 space-y-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Recomendação por Matéria</p>
               {stats.subjectStats.map(s => (
                 <div key={s.subject.id} className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.subject.color }} />
+                      <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: s.subject.color }} />
                       <span className="text-sm font-medium">{s.subject.name}</span>
                       {!s.isOnTrack && (
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
@@ -200,7 +200,7 @@ export default function PlannerPage() {
           </div>
 
           {stats.subjectStats.some(s => !s.isOnTrack) && (
-            <div className="glass rounded-2xl p-6 border border-amber-500/30">
+            <div className="glass rounded-sm p-6 border border-amber-500/30">
               <div className="flex items-center gap-3 mb-4">
                 <AlertTriangle className="w-5 h-5 text-amber-400" />
                 <h3 className="font-semibold text-foreground">Matérias que precisam de atenção</h3>
@@ -209,14 +209,14 @@ export default function PlannerPage() {
                 {stats.subjectStats
                   .filter(s => !s.isOnTrack)
                   .map(s => (
-                    <div key={s.subject.id} className="flex items-center justify-between bg-amber-500/10 rounded-lg px-4 py-3">
+                    <div key={s.subject.id} className="flex items-center justify-between bg-amber-500/10 rounded-sm px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.subject.color }} />
+                        <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: s.subject.color }} />
                         <span className="text-sm font-medium">{s.subject.name}</span>
                       </div>
                       <div className="flex items-center gap-3 text-sm">
                         <span className="text-amber-400 font-medium">{s.hoursPerDay.toFixed(1)}h/dia necessárias</span>
-                        <Link to="/sessions" className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-border bg-transparent hover:bg-secondary transition-colors">
+                        <Link to="/sessions" className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-sm border border-border bg-transparent hover:bg-secondary transition-colors">
                           <Zap className="w-3.5 h-3.5" /> Estudar
                         </Link>
                       </div>

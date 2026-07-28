@@ -44,11 +44,11 @@ function getPct(correct: number, total: number) {
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+    <div className="bg-card border border-border rounded-sm px-3 py-2 shadow-xl text-xs">
       <p className="font-semibold text-foreground mb-1">{label}</p>
       {payload.map((p: any) => (
         <p key={p.name} style={{ color: p.color }} className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full inline-block" style={{ background: p.color }} />
+          <span className="w-2 h-2 rounded-sm inline-block" style={{ background: p.color }} />
           {p.name}: <span className="font-bold">{p.value}</span>
         </p>
       ))}
@@ -264,11 +264,11 @@ export default function StatisticsPage() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-8 bg-muted rounded-lg w-40" />
+        <div className="h-8 bg-muted rounded-sm w-40" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-muted rounded-2xl" />)}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-muted rounded-sm" />)}
         </div>
-        {[...Array(3)].map((_, i) => <div key={i} className="h-64 bg-muted rounded-2xl" />)}
+        {[...Array(3)].map((_, i) => <div key={i} className="h-64 bg-muted rounded-sm" />)}
       </div>
     );
   }
@@ -286,13 +286,13 @@ export default function StatisticsPage() {
         <div className="relative">
           <button
             onClick={() => setShowRangeMenu(v => !v)}
-            className="flex items-center gap-2 h-9 px-4 rounded-xl border border-border bg-card text-sm font-medium hover:bg-secondary transition-colors"
+            className="flex items-center gap-2 h-9 px-4 rounded-sm border border-border bg-card text-sm font-medium hover:bg-secondary transition-colors"
           >
             {RANGE_LABELS[range]}
             <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
           {showRangeMenu && (
-            <div className="absolute right-0 top-full mt-1 w-44 bg-card border border-border rounded-xl shadow-xl z-20 py-1">
+            <div className="absolute right-0 top-full mt-1 w-44 bg-card border border-border rounded-sm shadow-xl z-20 py-1">
               {(Object.keys(RANGE_LABELS) as Range[]).map(r => (
                 <button
                   key={r}
@@ -310,7 +310,7 @@ export default function StatisticsPage() {
       {/* ── Summary Cards ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Desempenho */}
-        <div className="glass rounded-2xl p-5 border border-border/50 flex flex-col gap-3">
+        <div className="glass rounded-sm p-5 border border-border/50 flex flex-col gap-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Desempenho</p>
           <div className="flex items-center gap-4">
             <div className="relative w-20 h-20 flex-shrink-0">
@@ -342,7 +342,7 @@ export default function StatisticsPage() {
         </div>
 
         {/* Tempo de Estudo */}
-        <div className="glass rounded-2xl p-5 border border-border/50 flex flex-col gap-3">
+        <div className="glass rounded-sm p-5 border border-border/50 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tempo de Estudo</p>
             <Clock className="w-4 h-4 text-primary" />
@@ -357,7 +357,7 @@ export default function StatisticsPage() {
         </div>
 
         {/* Constância */}
-        <div className="glass rounded-2xl p-5 border border-border/50 flex flex-col gap-3">
+        <div className="glass rounded-sm p-5 border border-border/50 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Constância</p>
             <Zap className="w-4 h-4 text-amber-400" />
@@ -370,7 +370,7 @@ export default function StatisticsPage() {
         </div>
 
         {/* Progresso */}
-        <div className="glass rounded-2xl p-5 border border-border/50 flex flex-col gap-3">
+        <div className="glass rounded-sm p-5 border border-border/50 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Progresso no Edital</p>
             <Target className="w-4 h-4 text-purple-400" />
@@ -381,9 +381,9 @@ export default function StatisticsPage() {
             <p>{pendingTopics} tópicos pendentes</p>
           </div>
           {/* mini progress bar */}
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div className="h-1.5 rounded-sm bg-muted overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-purple-500 to-primary transition-all"
+              className="h-full rounded-sm bg-gradient-to-r from-purple-500 to-primary transition-all"
               style={{ width: `${topicsProgress}%` }}
             />
           </div>
@@ -391,7 +391,7 @@ export default function StatisticsPage() {
       </div>
 
       {/* ── Evolução no Tempo ──────────────────────────────────── */}
-      <div className="glass rounded-2xl p-6 border border-border/50">
+      <div className="glass rounded-sm p-6 border border-border/50">
         <div className="flex items-center gap-2 mb-5">
           <TrendingUp className="w-4 h-4 text-primary" />
           <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Evolução no Tempo</p>
@@ -415,7 +415,7 @@ export default function StatisticsPage() {
       </div>
 
       {/* ── Horas de Estudo ────────────────────────────────────── */}
-      <div className="glass rounded-2xl p-6 border border-border/50">
+      <div className="glass rounded-sm p-6 border border-border/50">
         <div className="flex items-center gap-2 mb-5">
           <Clock className="w-4 h-4 text-primary" />
           <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Horas de Estudo</p>
@@ -442,7 +442,7 @@ export default function StatisticsPage() {
       {/* ── Disciplinas x Horas + Radar ────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Horizontal bar */}
-        <div className="glass rounded-2xl p-6 border border-border/50">
+        <div className="glass rounded-sm p-6 border border-border/50">
           <div className="flex items-center gap-2 mb-5">
             <BookOpen className="w-4 h-4 text-primary" />
             <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Disciplinas × Horas</p>
@@ -476,7 +476,7 @@ export default function StatisticsPage() {
         </div>
 
         {/* Radar */}
-        <div className="glass rounded-2xl p-6 border border-border/50">
+        <div className="glass rounded-sm p-6 border border-border/50">
           <div className="flex items-center gap-2 mb-5">
             <Target className="w-4 h-4 text-primary" />
             <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Distribuição por Matéria</p>
@@ -498,7 +498,7 @@ export default function StatisticsPage() {
       </div>
 
       {/* ── Disciplinas x Desempenho ───────────────────────────── */}
-      <div className="glass rounded-2xl p-6 border border-border/50">
+      <div className="glass rounded-sm p-6 border border-border/50">
         <div className="flex items-center gap-2 mb-5">
           <TrendingUp className="w-4 h-4 text-primary" />
           <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Disciplinas × Desempenho</p>
@@ -532,7 +532,7 @@ export default function StatisticsPage() {
       </div>
 
       {/* ── Tópicos x Desempenho (tabela) ─────────────────────── */}
-      <div className="glass rounded-2xl border border-border/50 overflow-hidden">
+      <div className="glass rounded-sm border border-border/50 overflow-hidden">
         <div className="flex items-center gap-2 p-6 pb-4">
           <BookOpen className="w-4 h-4 text-primary" />
           <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Tópicos × Desempenho</p>

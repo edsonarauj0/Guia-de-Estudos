@@ -18,6 +18,7 @@ import { formatDuration } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import type { SessionType, StudySession } from '@/types';
 import { Button } from '@/components/ui/button';
+import EditSessionModal from '@/components/sessions/EditSessionModal';
 import {
   Select,
   SelectContent,
@@ -45,6 +46,7 @@ export default function SessionsPage() {
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<'all' | SessionType>('all');
   const [periodFilter, setPeriodFilter] = useState<'all' | '7' | '30' | '90'>('all');
+  const [editingSession, setEditingSession] = useState<StudySession | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -143,24 +145,24 @@ export default function SessionsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="glass rounded-xl p-5">
+        <div className="glass rounded-sm p-5">
           <Clock className="mb-3 h-5 w-5 text-primary" />
           <p className="text-2xl font-bold">{formatDuration(todayMinutes)}</p>
           <p className="text-sm text-muted-foreground">estudados hoje</p>
         </div>
-        <div className="glass rounded-xl p-5">
+        <div className="glass rounded-sm p-5">
           <BarChart3 className="mb-3 h-5 w-5 text-emerald-500" />
           <p className="text-2xl font-bold">{formatDuration(totalMinutes)}</p>
           <p className="text-sm text-muted-foreground">tempo total no plano</p>
         </div>
-        <div className="glass rounded-xl p-5">
+        <div className="glass rounded-sm p-5">
           <BookOpen className="mb-3 h-5 w-5 text-amber-500" />
           <p className="text-2xl font-bold">{studiedSubjects}</p>
           <p className="text-sm text-muted-foreground">matérias estudadas</p>
         </div>
       </div>
 
-      <div className="glass rounded-xl p-5">
+      <div className="glass rounded-sm p-5">
         <p className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Tempo por tipo
         </p>
@@ -171,7 +173,7 @@ export default function SessionsPage() {
               .reduce((total, session) => total + session.durationMinutes, 0);
 
             return (
-              <div key={value} className="rounded-lg border border-border bg-background/50 p-4">
+              <div key={value} className="rounded-sm border border-border bg-background/50 p-4">
                 <Icon className={cn('mb-3 h-5 w-5', className)} />
                 <p className="font-semibold">{formatDuration(minutesByType)}</p>
                 <p className="text-sm text-muted-foreground">{label}</p>
@@ -181,7 +183,7 @@ export default function SessionsPage() {
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-6">
+      <div className="glass rounded-sm p-6">
         <div className="mb-4 flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
           <h2 className="font-semibold text-foreground">Registros</h2>
@@ -190,11 +192,11 @@ export default function SessionsPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(item => (
-              <div key={item} className="h-16 animate-pulse rounded-lg bg-muted" />
+              <div key={item} className="h-16 animate-pulse rounded-sm bg-muted" />
             ))}
           </div>
         ) : filteredSessions.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-10 text-center">
+          <div className="rounded-sm border border-dashed border-border p-10 text-center">
             <Clock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
             <p className="font-medium text-foreground">Nenhuma sessão registrada</p>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -221,8 +223,12 @@ export default function SessionsPage() {
                     const Icon = type.icon;
 
                     return (
-                      <div key={session.id} className="flex items-center gap-3 rounded-lg bg-background/50 px-4 py-3">
-                        <div className="rounded-lg border border-border bg-muted/50 p-2">
+                      <div
+                        key={session.id}
+                        onClick={() => setEditingSession(session)}
+                        className="flex cursor-pointer items-center gap-3 rounded-sm bg-background/50 px-4 py-3 transition-colors hover:bg-muted/60"
+                      >
+                        <div className="rounded-sm border border-border bg-muted/50 p-2">
                           <Icon className={cn('h-4 w-4', type.className)} />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -250,6 +256,14 @@ export default function SessionsPage() {
           </div>
         )}
       </div>
+
+      <EditSessionModal
+        session={editingSession}
+        open={editingSession !== null}
+        onClose={() => setEditingSession(null)}
+        onSaved={() => { setEditingSession(null); loadData(); }}
+        onDeleted={() => { setEditingSession(null); loadData(); }}
+      />
     </div>
   );
 }

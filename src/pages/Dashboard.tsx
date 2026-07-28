@@ -115,12 +115,12 @@ export default function DashboardPage() {
     if (items.length === 0) return null;
 
     return (
-      <div className="glass rounded-2xl p-5 border border-border/60">
+      <div className="glass rounded-sm p-5 border border-border/60">
         <div className="mb-3">
           <h2 className="font-semibold">Sequência dos estudos</h2>
           <p className="text-xs text-muted-foreground mt-1">Matéria e tópico de cada sessão planejada.</p>
         </div>
-        <div className="max-h-[360px] overflow-auto rounded-lg border border-border/70">
+        <div className="max-h-[360px] overflow-auto rounded-sm border border-border/70">
           <table className="w-full min-w-[560px] text-sm">
             <thead className="sticky top-0 z-10 bg-card text-left text-[11px] uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
                   <tr key={item.id} className="bg-background/30 hover:bg-muted/40">
                     <td className="px-3 py-2">
                       <span
-                        className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
+                        className="flex h-6 w-6 items-center justify-center rounded-sm text-[11px] font-bold"
                         style={{ backgroundColor: `${item.subjectColor}26`, color: item.subjectColor }}
                       >
                         {index + 1}
@@ -205,10 +205,10 @@ export default function DashboardPage() {
   }) {
     if (!activeCycle) {
       return (
-        <div className="glass rounded-2xl p-6 flex flex-col items-center text-center border border-dashed">
+        <div className="glass rounded-sm p-6 flex flex-col items-center text-center border border-dashed">
           <Target className="w-6 h-6 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">Nenhum ciclo ativo</p>
-          <Link to="/cycle" className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-border bg-transparent hover:bg-secondary transition-colors mt-3">
+          <Link to="/cycle" className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-sm border border-border bg-transparent hover:bg-secondary transition-colors mt-3">
             Criar ciclo
           </Link>
         </div>
@@ -218,7 +218,7 @@ export default function DashboardPage() {
     const { planned, actual, totalPlanned, totalStudied } = chartData;
 
     return (
-      <div className="glass rounded-2xl p-6">
+      <div className="glass rounded-sm p-6">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Ciclo {activeCycle.cycleNumber ?? 1}</p>
           <Link to="/cycle" className="text-xs text-primary hover:underline">Ver ciclo</Link>
@@ -246,13 +246,13 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-8 bg-muted rounded-lg w-48" />
+        <div className="h-8 bg-muted rounded-sm w-48" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-muted rounded-2xl" />)}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-muted rounded-sm" />)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="h-48 bg-muted rounded-2xl" />
-          <div className="col-span-2 h-48 bg-muted rounded-2xl" />
+          <div className="h-48 bg-muted rounded-sm" />
+          <div className="col-span-2 h-48 bg-muted rounded-sm" />
         </div>
       </div>
     );
@@ -284,15 +284,15 @@ export default function DashboardPage() {
 
       {/* Setup banner if no exam date */}
       {!stats?.plan?.examDate && (
-        <div className="glass border border-primary/30 rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+        <div className="glass border border-primary/30 rounded-sm p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-sm bg-primary/15 flex items-center justify-center flex-shrink-0">
             <AlertCircle className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
             <p className="font-medium text-foreground">Configure seu concurso</p>
             <p className="text-sm text-muted-foreground">Adicione a data da prova e suas matérias para ativar o planejamento adaptativo.</p>
           </div>
-          <Link to="/settings" className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-border bg-transparent hover:bg-secondary transition-colors">
+          <Link to="/settings" className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-sm border border-border bg-transparent hover:bg-secondary transition-colors">
             Configurar
           </Link>
         </div>
@@ -364,7 +364,7 @@ export default function DashboardPage() {
           <CycleSequenceTable items={cycleChartData.items} />
 
           {/* Overall progress */}
-          <div className="glass rounded-2xl p-6">
+          <div className="glass rounded-sm p-6">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Progresso Geral</p>
               <span className="text-lg font-bold gradient-text">{stats?.overallProgress ?? 0}%</span>
@@ -378,7 +378,7 @@ export default function DashboardPage() {
 
           {/* At-risk subjects */}
           {atRiskSubjects.length > 0 && (
-            <div className="glass rounded-2xl p-6">
+            <div className="glass rounded-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <AlertCircle className="w-4 h-4 text-amber-400" />
                 <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Matérias em risco</p>
@@ -386,7 +386,7 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 {atRiskSubjects.slice(0, 3).map(s => (
                   <div key={s.subject.id} className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: s.subject.color }} />
+                    <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: s.subject.color }} />
                     <span className="text-sm text-foreground flex-1 truncate">{s.subject.name}</span>
                     <span className="text-xs text-amber-400">{s.progressPercent}%</span>
                   </div>
@@ -402,10 +402,10 @@ export default function DashboardPage() {
           {stats && stats.subjectStats.length > 0 ? (
             <SubjectProgressChart stats={stats.subjectStats} />
           ) : (
-            <div className="glass rounded-2xl p-6 flex flex-col items-center justify-center text-center h-48 border border-dashed">
+            <div className="glass rounded-sm p-6 flex flex-col items-center justify-center text-center h-48 border border-dashed">
               <BookOpen className="w-8 h-8 text-muted-foreground mb-2" />
               <p className="text-muted-foreground text-sm">Nenhuma matéria cadastrada ainda</p>
-              <Link to="/subjects" className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-border bg-transparent hover:bg-secondary transition-colors mt-3">
+              <Link to="/subjects" className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-sm border border-border bg-transparent hover:bg-secondary transition-colors mt-3">
                 Adicionar Matérias
               </Link>
             </div>
@@ -420,14 +420,14 @@ export default function DashboardPage() {
 
           {/* Subject breakdown */}
           {stats && stats.subjectStats.length > 0 && (
-            <div className="glass rounded-2xl p-6">
+            <div className="glass rounded-sm p-6">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-4">Detalhes por Matéria</p>
               <div className="space-y-3">
                 {stats.subjectStats.map(s => (
                   <div key={s.subject.id}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.subject.color }} />
+                        <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: s.subject.color }} />
                         <span className="text-sm font-medium text-foreground">{s.subject.name}</span>
                         <span className="text-xs text-muted-foreground">({s.subject.weight}%)</span>
                       </div>
@@ -470,9 +470,9 @@ function StatCard({
   };
 
   return (
-    <div className={`glass rounded-2xl p-5 border card-hover ${bgMap[color]} h-full block`}>
+    <div className={`glass rounded-sm p-5 border card-hover ${bgMap[color]} h-full block`}>
       <div className="flex items-center justify-between mb-3">
-        <div className="p-2 rounded-lg bg-background/60">
+        <div className="p-2 rounded-sm bg-background/60">
           {icon}
         </div>
       </div>

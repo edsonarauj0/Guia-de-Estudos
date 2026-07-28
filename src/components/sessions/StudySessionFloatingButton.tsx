@@ -50,6 +50,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 
 export default function StudySessionFloatingButton() {
   const { user } = useAuthContext();
@@ -337,14 +339,13 @@ export default function StudySessionFloatingButton() {
           type="button"
           onClick={() => setOpen(true)}
           className={cn(
-            'fixed bottom-5 right-5 z-40 flex h-14 min-w-14 items-center justify-center gap-3 rounded-full border shadow-xl',
+            'fixed bottom-5 right-5 z-40 flex h-14 min-w-14 items-center justify-center gap-3 rounded-sm border shadow-xl',
             'border-primary/30 bg-primary px-5 text-white transition-all duration-200 hover:scale-105 hover:bg-secondary-foreground',
             'lg:bottom-7 lg:right-7'
           )}
           aria-label="Abrir sessão de estudo"
         >
           <Clock3 className="h-5 w-5" />
-          <span className="hidden font-semibold sm:inline">Estudar</span>
         </button>
       )}
 
@@ -366,7 +367,7 @@ export default function StudySessionFloatingButton() {
           <div className="flex items-center gap-6">
             <button
               onClick={isRunning ? pause : start}
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-black transition hover:scale-105 shadow-lg"
+              className="flex h-16 w-16 items-center justify-center rounded-sm bg-white text-black transition hover:scale-105 shadow-lg"
               title={isRunning ? 'Pausar' : 'Retomar'}
             >
               {isRunning ? <Pause className="h-8 w-8 text-black" /> : <Play className="h-8 w-8 text-black ml-1" />}
@@ -375,7 +376,7 @@ export default function StudySessionFloatingButton() {
             <button
               onClick={handleFinish}
               disabled={saving}
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white transition hover:scale-105 hover:bg-secondary-foreground shadow-lg"
+              className="flex h-16 w-16 items-center justify-center rounded-sm bg-primary text-white transition hover:scale-105 hover:bg-secondary-foreground shadow-lg"
               title="Finalizar e Salvar"
             >
               {saving ? <Loader2 className="h-8 w-8 animate-spin" /> : <Square className="h-7 w-7 fill-white" />}
@@ -383,7 +384,7 @@ export default function StudySessionFloatingButton() {
 
             <button
               onClick={handleCancel}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-gray-300 transition hover:bg-white/20"
+              className="flex h-12 w-12 items-center justify-center rounded-sm bg-white/10 text-gray-300 transition hover:bg-white/20"
               title="Cancelar"
             >
               <X className="h-6 w-6" />
@@ -393,7 +394,7 @@ export default function StudySessionFloatingButton() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl w-[95vw] p-5 sm:p-6 bg-white rounded-2xl text-gray-800">
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl w-[95vw] p-5 sm:p-6 bg-white rounded-sm text-gray-800">
           <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
             <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-800">
               Registro de Estudo
@@ -409,7 +410,7 @@ export default function StudySessionFloatingButton() {
                   type="button"
                   onClick={() => setDateOption('today')}
                   className={cn(
-                    'px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all',
+                    'px-4 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all',
                     dateOption === 'today'
                       ? 'bg-primary text-white shadow-sm'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -421,7 +422,7 @@ export default function StudySessionFloatingButton() {
                   type="button"
                   onClick={() => setDateOption('yesterday')}
                   className={cn(
-                    'px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all',
+                    'px-4 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all',
                     dateOption === 'yesterday'
                       ? 'bg-primary text-white shadow-sm'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -433,7 +434,7 @@ export default function StudySessionFloatingButton() {
                   type="button"
                   onClick={() => setDateOption('other')}
                   className={cn(
-                    'px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all',
+                    'px-4 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all',
                     dateOption === 'other'
                       ? 'bg-primary text-white shadow-sm'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -450,18 +451,22 @@ export default function StudySessionFloatingButton() {
                 <Label className="text-xs font-semibold text-gray-400 uppercase">Disciplina</Label>
                 <Select value={selectedSubjectId} onValueChange={value => value && setSelectedSubjectId(value)}>
                   <SelectTrigger className="w-full truncate">
-                    <SelectValue placeholder="Selecione uma matéria" className={'truncate'}>
+                    <SelectValue placeholder="Selecione uma matéria" className={'truncate block lowercase first-letter:uppercase'}>
                       {subjects.find(p => p.id === selectedSubjectId)?.name ?? "Selecione uma matéria"}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="max-h-60 w-[280px]">
                     <SelectGroup>
                       <SelectLabel>Disciplinas</SelectLabel>
-                      {subjects.map(subject => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </SelectItem>
-                      ))}
+                      {subjects.map(subject => {
+                        const formattedName = subject.name.charAt(0).toUpperCase() + subject.name.slice(1).toLowerCase();
+
+                        return (
+                          <SelectItem key={subject.id} value={subject.id} className="truncate">
+                            {formattedName}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -472,12 +477,12 @@ export default function StudySessionFloatingButton() {
                 {sessionStart ? (
                   <div className="border-b-2 border-primary py-2 font-mono text-gray-700 font-semibold">{formatted}</div>
                 ) : (
-                  <input
+                  <Input
                     type="time"
                     step="60"
                     value={manualDuration}
                     onChange={event => setManualDuration(event.target.value)}
-                    className="w-full border-0 border-b-2 border-primary px-0 py-1.5 font-mono text-sm font-semibold outline-none"
+                    className="w-full"
                     aria-label="Tempo de estudo manual"
                   />
                 )}
@@ -485,25 +490,29 @@ export default function StudySessionFloatingButton() {
             </div>
 
             {/* LINHA 2: TÓPICO, MATERIAL */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs font-semibold text-gray-400 uppercase">Tópico</Label>
                 <Select value={selectedTopicId} onValueChange={value => value && setSelectedTopicId(value)}
                   disabled={!selectedSubjectId || topics.length === 0}
                 >
                   <SelectTrigger className="w-full truncate">
-                    <SelectValue placeholder="Selecione um tópico" className={'truncate'}>
+                    <SelectValue placeholder="Selecione um tópico" className={'truncate block lowercase first-letter:uppercase'}>
                       {topics.find(p => p.id === selectedTopicId)?.name ?? "Selecione um tópico"}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="max-h-60 w-[280px]">
                     <SelectGroup>
                       <SelectLabel>Disciplinas</SelectLabel>
-                      {topics.map(topic => (
-                        <SelectItem key={topic.id} value={topic.id}>
-                          {topic.name}
-                        </SelectItem>
-                      ))}
+                      {topics.map(topic => {
+                        const formattedName = topic.name.charAt(0).toUpperCase() + topic.name.slice(1).toLowerCase();
+
+                        return (
+                          <SelectItem key={topic.id} value={topic.id} className="truncate">
+                            {formattedName}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -511,11 +520,11 @@ export default function StudySessionFloatingButton() {
 
               <div className="space-y-1">
                 <Label className="text-xs font-semibold text-gray-400 uppercase">Material</Label>
-                <input
+                <Input
                   type="text"
                   value={material}
                   onChange={e => setMaterial(e.target.value)}
-                  className="w-full border-0 border-b-2 border-primary px-0 py-1.5 text-sm outline-none focus:ring-0"
+                  className="w-full"
                 />
               </div>
             </div>
@@ -549,7 +558,7 @@ export default function StudySessionFloatingButton() {
                   {revisions.map(day => (
                     <span
                       key={day}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium"
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-sm text-xs font-medium"
                     >
                       {day}
                       <button
@@ -565,13 +574,13 @@ export default function StudySessionFloatingButton() {
               )}
             </div>
 
-           <Accordion
+            <Accordion
               value={openAccordions}
               onValueChange={(val: string[]) => setOpenAccordions(val)}
               className="w-full space-y-3 pt-2"
             >
               {/* ACCORDION: VIDEOAULAS */}
-              <AccordionItem value="videoaulas" className="border-2 border-secondary-foreground/20 rounded-xl bg-blue-50/10 overflow-hidden">
+              <AccordionItem value="videoaulas" className="border-2 border-secondary-foreground/20 rounded-sm bg-blue-50/10 overflow-hidden">
                 <div className="flex items-center pl-4 w-full">
                   <label className="flex items-center cursor-pointer z-10 py-3 shrink-0" title="Ativar métricas de Videoaulas">
                     <input
@@ -632,7 +641,7 @@ export default function StudySessionFloatingButton() {
               </AccordionItem>
 
               {/* ACCORDION: PÁGINAS */}
-              <AccordionItem value="paginas" className="border-2 border-secondary-foreground/20 rounded-xl bg-blue-50/10 overflow-hidden">
+              <AccordionItem value="paginas" className="border-2 border-secondary-foreground/20 rounded-sm bg-blue-50/10 overflow-hidden">
                 <div className="flex items-center pl-4 w-full">
                   <label className="flex items-center cursor-pointer z-10 py-3 shrink-0" title="Ativar métricas de Leitura">
                     <input
@@ -681,7 +690,7 @@ export default function StudySessionFloatingButton() {
               </AccordionItem>
 
               {/* ACCORDION: QUESTÕES */}
-              <AccordionItem value="questoes" className="border-2 border-secondary-foreground/20 rounded-xl bg-blue-50/10 overflow-hidden">
+              <AccordionItem value="questoes" className="border-2 border-secondary-foreground/20 rounded-sm bg-blue-50/10 overflow-hidden">
                 <div className="flex items-center pl-4 w-full">
                   <label className="flex items-center cursor-pointer z-10 py-3 shrink-0" title="Ativar métricas de Questões">
                     <input
@@ -733,11 +742,11 @@ export default function StudySessionFloatingButton() {
             {/* COMENTÁRIOS */}
             <div className="space-y-1 pt-2">
               <Label className="text-xs font-semibold text-gray-400 uppercase">Comentários</Label>
-              <textarea
+              <Textarea
                 rows={2}
                 value={comments}
                 onChange={e => setComments(e.target.value)}
-                className="w-full border-0 border-b-2 border-primary px-0 py-1 text-sm outline-none resize-none focus:ring-0"
+                className="w-full"
               />
             </div>
 
@@ -757,7 +766,7 @@ export default function StudySessionFloatingButton() {
                   type="button"
                   variant="outline"
                   onClick={() => setOpen(false)}
-                  className="flex-1 sm:flex-none rounded-xl border-primary text-secondary-foreground hover:bg-blue-50 px-6"
+                  className="flex-1 sm:flex-none rounded-sm border-primary text-secondary-foreground hover:bg-blue-50 px-6"
                 >
                   Cancelar
                 </Button>
@@ -765,7 +774,7 @@ export default function StudySessionFloatingButton() {
                   type="button"
                   onClick={handleFinish}
                   disabled={saving || !selectedPlanId || !selectedSubjectId}
-                  className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-secondary-foreground text-white px-8"
+                  className="flex-1 sm:flex-none rounded-sm bg-primary hover:bg-secondary-foreground text-white px-8"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
                 </Button>

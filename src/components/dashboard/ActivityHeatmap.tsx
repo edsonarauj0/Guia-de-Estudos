@@ -54,7 +54,7 @@ export default function ActivityHeatmap({ sessions }: ActivityHeatmapProps) {
   }
 
   return (
-    <div className="glass rounded-2xl p-6">
+    <div className="glass rounded-sm p-6">
       <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-4">Atividade dos últimos 3 meses</p>
 
       <div className="flex gap-1 overflow-x-auto pb-2">

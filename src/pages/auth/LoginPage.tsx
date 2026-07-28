@@ -42,15 +42,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-sm blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-sm blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-sm blur-3xl" />
       </div>
 
       <div className="w-full max-w-md relative z-10 animate-fade-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/15 border border-primary/30 mb-4 animate-pulse-glow">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-sm bg-primary/15 border border-primary/30 mb-4 animate-pulse-glow">
             <BookOpen className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold gradient-text">Guia de Estudo</h1>
@@ -58,11 +58,11 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="glass rounded-2xl p-8 shadow-2xl">
+        <div className="glass rounded-sm p-8 shadow-2xl">
           <h2 className="text-xl font-semibold mb-6">Entrar na conta</h2>
 
           {error && (
-            <div className="bg-destructive/15 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-3 mb-4">
+            <div className="bg-destructive/15 border border-destructive/30 text-destructive text-sm rounded-sm px-4 py-3 mb-4">
               {error}
             </div>
           )}

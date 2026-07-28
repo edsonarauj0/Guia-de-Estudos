@@ -75,7 +75,7 @@ export default function TopicItem({ topic, onEdit, onDelete, onUpdate, inReviewQ
 
   return (
     <div className={cn(
-      "bg-background/60 rounded-xl border border-border/60 transition-all duration-200",
+      "bg-background/60 rounded-sm border border-border/60 transition-all duration-200",
       "hover:border-border",
       expanded && "border-primary/20"
     )}>
@@ -106,12 +106,12 @@ export default function TopicItem({ topic, onEdit, onDelete, onUpdate, inReviewQ
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-medium text-foreground text-sm">{topic.name}</h3>
             {topic.difficulty && (
-              <span className={cn('text-xs px-1.5 py-0.5 rounded-md font-medium', difficultyColor[topic.difficulty])}>
+              <span className={cn('text-xs px-1.5 py-0.5 rounded-sm font-medium', difficultyColor[topic.difficulty])}>
                 {DIFFICULTY_LABELS[topic.difficulty]}
               </span>
             )}
             {inReviewQueue && (
-              <span className="text-xs px-1.5 py-0.5 rounded-md font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1" title="Na fila de revisão">
+              <span className="text-xs px-1.5 py-0.5 rounded-sm font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1" title="Na fila de revisão">
                 <RotateCcw className="w-3 h-3" />
                 Revisão
               </span>
@@ -127,7 +127,7 @@ export default function TopicItem({ topic, onEdit, onDelete, onUpdate, inReviewQ
                 <div
                   key={type}
                   className={cn(
-                    'flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md border',
+                    'flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-sm border',
                     status === 'completed' && 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
                     status === 'in_progress' && 'bg-amber-500/20 text-amber-400 border-amber-500/30',
                     status === 'not_started' && 'bg-muted/50 text-muted-foreground border-transparent',
@@ -200,7 +200,7 @@ export default function TopicItem({ topic, onEdit, onDelete, onUpdate, inReviewQ
                   onClick={() => cycleStatus(type)}
                   disabled={isUpdating}
                   className={cn(
-                    'flex items-center gap-3 p-3 rounded-xl border text-left transition-all duration-200',
+                    'flex items-center gap-3 p-3 rounded-sm border text-left transition-all duration-200',
                     'hover:scale-[1.02] active:scale-[0.98]',
                     status === 'completed' && 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
                     status === 'in_progress' && 'bg-amber-500/15 border-amber-500/30 text-amber-400',
@@ -219,7 +219,7 @@ export default function TopicItem({ topic, onEdit, onDelete, onUpdate, inReviewQ
           </div>
 
           {topic.notes && (
-            <div className="bg-muted/20 rounded-lg p-3 text-sm text-muted-foreground">
+            <div className="bg-muted/20 rounded-sm p-3 text-sm text-muted-foreground">
               {topic.notes}
             </div>
           )}

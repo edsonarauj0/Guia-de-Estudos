@@ -374,7 +374,7 @@ export default function SubjectsPage() {
     return (
       <div className="space-y-4 animate-pulse">
         <div className="h-8 bg-muted rounded w-48" />
-        {[1, 2, 3].map(i => <div key={i} className="h-24 bg-muted rounded-2xl" />)}
+        {[1, 2, 3].map(i => <div key={i} className="h-24 bg-muted rounded-sm" />)}
       </div>
     );
   }
@@ -399,7 +399,7 @@ export default function SubjectsPage() {
           {/* Import PDF/JSON */}
           <label className="cursor-pointer">
             <input type="file" accept=".pdf,.json,application/pdf,application/json" className="hidden" onChange={handleImportFile} />
-            <span className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+            <span className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-sm border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
               {importLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Importar PDF/JSON
             </span>
@@ -414,7 +414,7 @@ export default function SubjectsPage() {
 
       {/* Import Preview */}
       {importPreview && (
-        <div className="glass rounded-2xl p-6 border border-primary/30">
+        <div className="glass rounded-sm p-6 border border-primary/30">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold text-foreground">Pré-visualização da importação</h3>
@@ -430,7 +430,7 @@ export default function SubjectsPage() {
           </div>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {importPreview.map((sub, i) => (
-              <div key={i} className="bg-background/60 rounded-lg px-4 py-2">
+              <div key={i} className="bg-background/60 rounded-sm px-4 py-2">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-sm">{sub.name}</span>
                   <span className="text-xs text-muted-foreground">{sub.weight}% · {sub.topics.length} tópicos</span>
@@ -443,7 +443,7 @@ export default function SubjectsPage() {
 
       {/* Empty state */}
       {subjects.length === 0 && !importPreview && (
-        <div className="glass rounded-2xl p-12 text-center border border-dashed">
+        <div className="glass rounded-sm p-12 text-center border border-dashed">
           <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-semibold text-foreground mb-2">Nenhuma matéria cadastrada</h3>
           <p className="text-muted-foreground text-sm mb-6">
@@ -452,7 +452,7 @@ export default function SubjectsPage() {
           <div className="flex justify-center gap-3">
             <label className="cursor-pointer">
               <input type="file" accept=".pdf,.json,application/pdf,application/json" className="hidden" onChange={handleImportFile} />
-              <span className="inline-flex items-center gap-1.5 h-10 px-4 py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+              <span className="inline-flex items-center gap-1.5 h-10 px-4 py-2 text-sm font-medium rounded-sm border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
                 <FileText className="w-4 h-4" /> Importar edital
               </span>
             </label>
@@ -468,19 +468,19 @@ export default function SubjectsPage() {
         {subjects.map(subject => {
           const progress = getSubjectProgressPercent(subject.topics);
           return (
-            <div key={subject.id} className="glass rounded-2xl overflow-hidden card-hover">
+            <div key={subject.id} className="glass rounded-sm overflow-hidden card-hover">
               {/* Subject header */}
               <div
                 className="flex items-center gap-4 p-5 cursor-pointer"
                 onClick={() => toggleExpand(subject.id)}
               >
-                <div className="w-4 h-full rounded-full flex-shrink-0" style={{ backgroundColor: subject.color }} />
-                <div className="w-1 h-12 rounded-full flex-shrink-0" style={{ backgroundColor: subject.color }} />
+                <div className="w-4 h-full rounded-sm flex-shrink-0" style={{ backgroundColor: subject.color }} />
+                <div className="w-1 h-12 rounded-sm flex-shrink-0" style={{ backgroundColor: subject.color }} />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="font-semibold text-foreground">{subject.name}</h2>
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-sm">
                       {subject.weight}%
                     </span>
                   </div>
@@ -535,7 +535,7 @@ export default function SubjectsPage() {
                   </div>
 
                   {subject.topics.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
+                    <div className="text-center py-6 text-muted-foreground text-sm border border-dashed border-border rounded-sm">
                       Nenhum tópico. Clique em "Adicionar Tópico" para começar.
                     </div>
                   ) : (
@@ -592,7 +592,7 @@ export default function SubjectsPage() {
                 {SUBJECT_COLORS.map((color: string) => (
                   <button
                     key={color}
-                    className={`w-8 h-8 rounded-full transition-all duration-150 ${sColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110' : 'hover:scale-105'}`}
+                    className={`w-8 h-8 rounded-sm transition-all duration-150 ${sColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110' : 'hover:scale-105'}`}
                     style={{ backgroundColor: color }}
                     onClick={() => setSColor(color)}
                   />
@@ -664,7 +664,7 @@ export default function SubjectsPage() {
                   <button
                     key={d}
                     onClick={() => setTDifficulty(d)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all duration-150 ${tDifficulty === d
+                    className={`flex-1 py-2 rounded-sm text-sm font-medium border transition-all duration-150 ${tDifficulty === d
                       ? d === 'easy' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                         : d === 'medium' ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
                           : 'bg-red-500/20 text-red-400 border-red-500/40'

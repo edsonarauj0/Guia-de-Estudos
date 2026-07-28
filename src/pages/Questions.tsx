@@ -347,7 +347,7 @@ export default function Questions() {
                   </div>
 
                   {formTotal && formCorrect && (
-                    <div className="p-3 bg-muted/50 rounded-lg flex items-center justify-between border border-border/50">
+                    <div className="p-3 bg-muted/50 rounded-sm flex items-center justify-between border border-border/50">
                       <span className="text-sm font-medium">Prévia de Aproveitamento:</span>
                       <Badge variant={formPreviewAccuracy >= 70 ? "default" : formPreviewAccuracy >= 50 ? "secondary" : "destructive"}>
                         {formPreviewAccuracy.toFixed(1)}%
@@ -473,10 +473,10 @@ export default function Questions() {
                 ) : (
                   <div className="space-y-4">
                     {filteredLogs.slice(0, 20).map(log => (
-                      <div key={log.id} className="flex items-center justify-between p-4 rounded-xl bg-background/40 hover:bg-background/60 transition-colors border border-white/5">
+                      <div key={log.id} className="flex items-center justify-between p-4 rounded-sm bg-background/40 hover:bg-background/60 transition-colors border border-white/5">
                         <div className="flex items-center gap-4">
                           <div 
-                            className="w-3 h-12 rounded-full shrink-0" 
+                            className="w-3 h-12 rounded-sm shrink-0" 
                             style={{ backgroundColor: log.subjectColor }}
                           />
                           <div>
@@ -490,7 +490,7 @@ export default function Questions() {
                               <span>{format(parseISO(log.date), 'dd/MM/yyyy')}</span>
                               {log.topicName && (
                                 <>
-                                  <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                                  <span className="w-1 h-1 rounded-sm bg-muted-foreground/50" />
                                   <span className="truncate max-w-[200px]">{log.topicName}</span>
                                 </>
                               )}
@@ -531,10 +531,10 @@ export default function Questions() {
               <ScrollArea className="h-[700px] pr-4">
                 <div className="space-y-4">
                   {subjectStats.map(stat => (
-                    <div key={stat.name} className="flex flex-col gap-2 p-4 rounded-xl bg-background/40 border border-white/5">
+                    <div key={stat.name} className="flex flex-col gap-2 p-4 rounded-sm bg-background/40 border border-white/5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stat.color }} />
+                          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: stat.color }} />
                           <span className="font-medium text-white text-sm truncate max-w-[150px]" title={stat.name}>{stat.name}</span>
                         </div>
                         <Badge variant={stat.accuracy >= 70 ? "default" : stat.accuracy >= 50 ? "secondary" : "destructive"}>
@@ -546,9 +546,9 @@ export default function Questions() {
                         <span>{stat.total} questões</span>
                       </div>
                       {/* Simple progress bar */}
-                      <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mt-1">
+                      <div className="w-full h-1.5 bg-secondary rounded-sm overflow-hidden mt-1">
                         <div 
-                          className="h-full rounded-full transition-all" 
+                          className="h-full rounded-sm transition-all" 
                           style={{ 
                             width: `${stat.accuracy}%`,
                             backgroundColor: stat.accuracy >= 70 ? '#22c55e' : stat.accuracy >= 50 ? '#eab308' : '#ef4444'

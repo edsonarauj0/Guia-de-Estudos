@@ -157,7 +157,7 @@ export default function PlansPage() {
         <div className="h-8 bg-muted rounded w-48" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-48 bg-muted rounded-2xl" />
+            <div key={i} className="h-48 bg-muted rounded-sm" />
           ))}
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function PlansPage() {
 
         <TabsContent value={activeTab} className="mt-0">
           {filteredPlans.length === 0 ? (
-            <div className="glass rounded-2xl p-12 text-center border border-dashed flex flex-col items-center">
+            <div className="glass rounded-sm p-12 text-center border border-dashed flex flex-col items-center">
               <Library className="w-16 h-16 text-muted-foreground mb-4 opacity-50" />
               <h3 className="font-semibold text-foreground mb-2 text-xl">Nenhum planejamento encontrado</h3>
               <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
@@ -207,7 +207,7 @@ export default function PlansPage() {
                 const progressVal = 0; // You'd compute this properly in a full app
 
                 return (
-                  <div key={plan.id} className="glass rounded-2xl overflow-hidden card-hover flex flex-col border border-border/50 relative">
+                  <div key={plan.id} className="glass rounded-sm overflow-hidden card-hover flex flex-col border border-border/50 relative">
                     <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: plan.color }} />
                     <div className="p-5 pl-6 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-4">
@@ -331,7 +331,7 @@ export default function PlansPage() {
                   <button
                     key={c}
                     onClick={() => setColor(c)}
-                    className={`w-8 h-8 rounded-full transition-all ${color === c ? 'ring-2 ring-white ring-offset-2 scale-110' : 'hover:scale-105'}`}
+                    className={`w-8 h-8 rounded-sm transition-all ${color === c ? 'ring-2 ring-white ring-offset-2 scale-110' : 'hover:scale-105'}`}
                     style={{ backgroundColor: c }}
                   />
                 ))}

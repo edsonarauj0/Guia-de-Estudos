@@ -187,7 +187,7 @@ export default function Reviews() {
       <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-4xl flex-col justify-center animate-fade-in">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-primary/15 text-primary">
               <BrainCircuit className="size-5" />
             </div>
             <div className="min-w-0">
@@ -271,11 +271,11 @@ export default function Reviews() {
 
       </header>
 
-      <section className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5 sm:p-7">
-        <div className="pointer-events-none absolute -right-16 -top-20 size-64 rounded-full bg-primary/10 blur-3xl" />
+      <section className="relative overflow-hidden rounded-sm border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5 sm:p-7">
+        <div className="pointer-events-none absolute -right-16 -top-20 size-64 rounded-sm bg-primary/10 blur-3xl" />
         <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="flex items-start gap-4">
-            <div className="hidden size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 sm:flex">
+            <div className="hidden size-12 shrink-0 items-center justify-center rounded-sm bg-primary text-primary-foreground shadow-lg shadow-primary/20 sm:flex">
               <Sparkles className="size-6" />
             </div>
             <div>
@@ -383,7 +383,7 @@ export default function Reviews() {
                   return (
                     <div
                       key={day.date}
-                      className={`flex min-h-40 flex-col rounded-xl border p-3 ${index === 0 ? 'border-primary/30 bg-primary/5' : 'border-border/70 bg-muted/20'}`}
+                      className={`flex min-h-40 flex-col rounded-sm border p-3 ${index === 0 ? 'border-primary/30 bg-primary/5' : 'border-border/70 bg-muted/20'}`}
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="text-xs font-semibold uppercase text-muted-foreground">{day.dayName}</span>
@@ -391,8 +391,8 @@ export default function Reviews() {
                       </div>
                       <span className="mt-1 text-xl font-bold text-foreground">{day.dayNumber}</span>
                       <div className="mt-auto flex items-end gap-2 pt-4">
-                        <div className="flex h-[72px] w-2 items-end overflow-hidden rounded-full bg-muted">
-                          <div className="w-full rounded-full bg-primary" style={{ height: `${barHeight}px` }} />
+                        <div className="flex h-[72px] w-2 items-end overflow-hidden rounded-sm bg-muted">
+                          <div className="w-full rounded-sm bg-primary" style={{ height: `${barHeight}px` }} />
                         </div>
                         <div className="pb-0.5">
                           <p className="text-lg font-bold leading-none text-foreground">{day.count}</p>
@@ -425,7 +425,7 @@ export default function Reviews() {
                   {filteredCards.map(card => (
                     <div key={card.id} className="group flex flex-col gap-4 px-4 py-4 transition-colors hover:bg-muted/25 sm:flex-row sm:items-center sm:px-6">
                       <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <div className="h-10 w-1 shrink-0 rounded-full" style={{ backgroundColor: card.subjectColor }} />
+                        <div className="h-10 w-1 shrink-0 rounded-sm" style={{ backgroundColor: card.subjectColor }} />
                         <div className="min-w-0">
                           <p className="truncate font-medium text-foreground">{card.topicName}</p>
                           <p className="truncate text-sm text-muted-foreground">{card.subjectName}</p>
@@ -468,7 +468,7 @@ function ReviewMetric({ icon, label, value, helper }: { icon: React.ReactNode; l
   return (
     <Card size="sm" className="card-hover">
       <CardContent className="flex items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted/70">{icon}</div>
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted/70">{icon}</div>
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
           <div className="mt-0.5 flex items-baseline gap-2">
@@ -489,7 +489,7 @@ function ReviewRow({ card, today, order }: { card: ReviewCard; today: string; or
       <span className="hidden w-6 shrink-0 text-center text-xs font-medium tabular-nums text-muted-foreground sm:block">
         {String(order).padStart(2, '0')}
       </span>
-      <div className="h-10 w-1 shrink-0 rounded-full" style={{ backgroundColor: card.subjectColor }} />
+      <div className="h-10 w-1 shrink-0 rounded-sm" style={{ backgroundColor: card.subjectColor }} />
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-foreground">{card.topicName}</p>
         <p className="truncate text-sm text-muted-foreground">{card.subjectName}</p>
@@ -504,7 +504,7 @@ function ReviewRow({ card, today, order }: { card: ReviewCard; today: string; or
 function EmptyState({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
     <div className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
-      <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">{icon}</div>
+      <div className="mb-4 flex size-14 items-center justify-center rounded-sm bg-primary/10 text-primary">{icon}</div>
       <p className="font-semibold text-foreground">{title}</p>
       <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted-foreground">{description}</p>
     </div>
@@ -522,13 +522,13 @@ function ReviewsSkeleton() {
         </div>
         <Skeleton className="hidden h-8 w-64 sm:block" />
       </div>
-      <Skeleton className="h-44 rounded-2xl" />
+      <Skeleton className="h-44 rounded-sm" />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Skeleton className="h-20 rounded-xl" />
-        <Skeleton className="h-20 rounded-xl" />
-        <Skeleton className="h-20 rounded-xl" />
+        <Skeleton className="h-20 rounded-sm" />
+        <Skeleton className="h-20 rounded-sm" />
+        <Skeleton className="h-20 rounded-sm" />
       </div>
-      <Skeleton className="h-80 rounded-xl" />
+      <Skeleton className="h-80 rounded-sm" />
     </div>
   );
 }

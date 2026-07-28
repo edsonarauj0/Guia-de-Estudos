@@ -90,9 +90,9 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="profile" className="mt-6 space-y-6">
-          <div className="glass rounded-2xl p-6 space-y-6">
+          <div className="glass rounded-sm p-6 space-y-6">
             <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-4xl font-bold text-white flex-shrink-0 shadow-lg">
+              <div className="w-24 h-24 rounded-sm bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-4xl font-bold text-white flex-shrink-0 shadow-lg">
                 {displayName?.[0]?.toUpperCase() ?? 'U'}
               </div>
               <div className="space-y-1">
@@ -150,7 +150,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="preferences" className="mt-6 space-y-6">
-          <div className="glass rounded-2xl p-6 space-y-6">
+          <div className="glass rounded-sm p-6 space-y-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-border pb-4">
                 <div>
@@ -180,7 +180,7 @@ export default function SettingsPage() {
           {plans.map(plan => {
             const totalHours = Object.values(plan.dailyGoalHours || {}).reduce((a, b) => a + (b || 0), 0);
             return (
-              <div key={plan.id} className="glass rounded-2xl p-6 space-y-6 relative overflow-hidden">
+              <div key={plan.id} className="glass rounded-sm p-6 space-y-6 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1.5 h-full" style={{ backgroundColor: plan.color }} />
                 
                 <div className="flex items-start justify-between">
@@ -188,7 +188,7 @@ export default function SettingsPage() {
                     <h3 className="text-xl font-bold flex items-center gap-2">
                       {plan.name}
                       <span className={cn(
-                        "text-xs px-2 py-0.5 rounded-full font-medium border",
+                        "text-xs px-2 py-0.5 rounded-sm font-medium border",
                         plan.status === 'active' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
                         plan.status === 'paused' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
                         "bg-muted text-muted-foreground border-border"
@@ -200,7 +200,7 @@ export default function SettingsPage() {
                       <p className="text-sm text-muted-foreground mt-1">Data da prova: {new Date(plan.examDate).toLocaleDateString('pt-BR')}</p>
                     )}
                   </div>
-                  <Link to="/plans" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3">
+                  <Link to="/plans" className="inline-flex items-center justify-center rounded-sm text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3">
                     Gerenciar Planos
                   </Link>
                 </div>
@@ -208,7 +208,7 @@ export default function SettingsPage() {
                 <div className="space-y-4 pt-4 border-t border-border">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold">Horas de Estudo</h4>
-                    <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                    <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-sm">
                       {totalHours}h/semana
                     </span>
                   </div>
@@ -224,7 +224,7 @@ export default function SettingsPage() {
                             step="0.5"
                             value={plan.dailyGoalHours?.[key] || 0}
                             onChange={e => handleUpdatePlanHours(plan.id, key, e.target.value)}
-                            className="flex-1 h-2 bg-muted rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                            className="flex-1 h-2 bg-muted rounded-sm appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:bg-primary"
                           />
                           <div className="relative">
                             <Input
@@ -256,10 +256,10 @@ export default function SettingsPage() {
           })}
 
           {plans.length === 0 && (
-            <div className="text-center py-10 glass rounded-2xl border-dashed">
+            <div className="text-center py-10 glass rounded-sm border-dashed">
               <FolderOpen className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">Nenhum planejamento encontrado.</p>
-              <Link to="/plans" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+              <Link to="/plans" className="inline-flex items-center justify-center rounded-sm text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
                 Criar Novo Plano
               </Link>
             </div>

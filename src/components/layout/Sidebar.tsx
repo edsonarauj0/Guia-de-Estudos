@@ -57,7 +57,7 @@ export default function Sidebar() {
     <>
       {/* Mobile toggle */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-card border border-border shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-sm bg-card border border-border shadow-lg"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle menu"
       >
@@ -84,7 +84,7 @@ export default function Sidebar() {
         {/* Logo */}
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-sm bg-primary/15 border border-primary/30 flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-primary" />
             </div>
             <div>
@@ -130,7 +130,7 @@ export default function Sidebar() {
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className="flex-1 ml-2">{label}</span>
               {badge !== undefined && badge > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full mr-2">
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm mr-2">
                   {badge}
                 </span>
               )}
@@ -144,7 +144,7 @@ export default function Sidebar() {
           {/* Removed examName rendering since it's now per-plan */}
 
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+            <div className="w-9 h-9 rounded-sm bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
               {profile?.displayName?.[0]?.toUpperCase() ?? 'U'}
             </div>
             <div className="min-w-0">
@@ -157,7 +157,7 @@ export default function Sidebar() {
           <button
             onClick={toggleTheme}
             className={cn(
-              'w-full flex items-center justify-between px-3 py-2.5 rounded-lg mb-1',
+              'w-full flex items-center justify-between px-3 py-2.5 rounded-sm mb-1',
               'text-sm font-medium transition-all duration-200',
               'text-muted-foreground hover:text-foreground hover:bg-secondary',
               'group'
@@ -179,13 +179,13 @@ export default function Sidebar() {
             </div>
             {/* Toggle pill */}
             <div className={cn(
-              'relative w-10 h-5 rounded-full border transition-all duration-300 flex-shrink-0',
+              'relative w-10 h-5 rounded-sm border transition-all duration-300 flex-shrink-0',
               theme === 'dark'
                 ? 'bg-primary/20 border-primary/40'
                 : 'bg-amber-400/20 border-amber-400/40'
             )}>
               <div className={cn(
-                'absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 shadow-sm',
+                'absolute top-0.5 w-4 h-4 rounded-sm transition-all duration-300 shadow-sm',
                 theme === 'dark'
                   ? 'left-0.5 bg-primary'
                   : 'left-5 bg-amber-400'

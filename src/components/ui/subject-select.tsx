@@ -38,7 +38,7 @@ export function SubjectSelect({
         {selected ? (
           <span className="flex items-center gap-2 text-sm">
             <span
-              className="w-2.5 h-2.5 rounded-full shrink-0"
+              className="w-2.5 h-2.5 rounded-sm shrink-0"
               style={{ backgroundColor: selected.color }}
             />
             {selected.name}
@@ -57,7 +57,7 @@ export function SubjectSelect({
             <SelectItem key={s.id} value={s.id}>
               <span className="flex items-center gap-2">
                 <span
-                  className="w-2 h-2 rounded-full shrink-0"
+                  className="w-2 h-2 rounded-sm shrink-0"
                   style={{ backgroundColor: s.color }}
                 />
                 {s.name}

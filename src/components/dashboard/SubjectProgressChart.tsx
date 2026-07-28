@@ -9,7 +9,7 @@ interface SubjectProgressChartProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-xl text-sm">
+      <div className="bg-card border border-border rounded-sm px-3 py-2 shadow-xl text-sm">
         <p className="font-medium text-foreground mb-1">{label}</p>
         <p className="text-muted-foreground">Progresso: <span className="text-foreground font-medium">{payload[0].value}%</span></p>
       </div>
@@ -29,7 +29,7 @@ export default function SubjectProgressChart({ stats }: SubjectProgressChartProp
   }, [stats]);
 
   return (
-    <div className="glass rounded-2xl p-6">
+    <div className="glass rounded-sm p-6">
       <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-4">Progresso por Matéria</p>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
