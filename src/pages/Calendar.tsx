@@ -2,7 +2,7 @@
 import {
   addMonths, eachDayOfInterval, endOfMonth,
   format, getDay, isSameMonth, parseISO, startOfMonth, subMonths,
-  startOfWeek, endOfWeek, addWeeks, subWeeks, // Adicionados imports de semana
+  startOfWeek, endOfWeek, addWeeks, subWeeks,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -18,7 +18,7 @@ import {
 import { buildCalendarPlan } from "@/lib/calendarEngine";
 import type { CalendarDay, CalendarSlot, CycleSummary } from "@/lib/calendarEngine";
 import type { StudyPlan } from "@/types";
-import { formatDuration } from "@/lib/helpers";
+import { formatDuration, getTopicProgressPercent } from "@/lib/helpers"; // Import do getTopicProgressPercent
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,10 +87,16 @@ function mergeBySubject(slots: CalendarSlot[]): MergedSlot[] {
 
 // ─── DayCell ─────────────────────────────────────────────────
 
-function DayCell({ day, inMonth, onClick }: {
+function DayCell({ 
+  day, 
+  inMonth, 
+  onClick,
+  completedTopics 
+}: {
   day: CalendarDay;
   inMonth: boolean;
   onClick: () => void;
+  completedTopics: Set<string>;
 }) {
   const merged = useMemo(() => mergeBySubject(day.plannedSlots), [day.plannedSlots]);
   const shown = merged.slice(0, 2);
@@ -138,6 +144,7 @@ function DayCell({ day, inMonth, onClick }: {
         )}
       </div>
 
+      {/* Mini barra de histórico real do dia */}
       {day.isPast && day.isStudyDay && (
         <div className="mb-1 flex items-center gap-1">
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
@@ -152,30 +159,44 @@ function DayCell({ day, inMonth, onClick }: {
         </div>
       )}
 
-      {!day.isPast && shown.length > 0 && (
-        <div className="flex flex-col gap-0.5">
-          {shown.map((s, i) => (
-            <div
-              key={i}
-              className="rounded-sm px-1 py-0.5"
-              style={{
-                background: s.subjectColor + "18",
-                borderLeft: `2px solid ${s.subjectColor}`,
-              }}
-            >
-              <div className="flex items-baseline justify-between gap-0.5">
-                <span className="truncate text-[9px] font-semibold leading-tight text-foreground">
-                  {s.subjectName}
-                </span>
-                <span className="shrink-0 text-[8px] text-muted-foreground">{s.minutes}m</span>
+      {/* Blocos planejados (Matérias/Tópicos) */}
+      {shown.length > 0 && (
+        <div className="flex flex-col gap-0.5 mt-0.5">
+          {shown.map((s, i) => {
+            const hasTopics = s.topics.length > 0;
+            // Um bloco é considerado cinza se TODOS os tópicos listados nele já foram estudados 100%
+            const allTopicsStudied = hasTopics && s.topics.every(t => completedTopics.has(`${s.subjectId}-${t}`));
+            // Caso não tenha tópico atrelado, deixamos cinza apenas se for um dia passado.
+            const isBlockGray = allTopicsStudied || (!hasTopics && day.isPast);
+
+            return (
+              <div
+                key={i}
+                className={`rounded-sm px-1 py-0.5 transition-colors ${isBlockGray ? "bg-muted/50" : ""}`}
+                style={!isBlockGray ? {
+                  background: s.subjectColor + "18",
+                  borderLeft: `2px solid ${s.subjectColor}`,
+                } : {
+                  borderLeft: `2px solid hsl(var(--muted-foreground) / 0.3)`
+                }}
+              >
+                <div className="flex items-baseline justify-between gap-0.5">
+                  <span className={`truncate text-[9px] font-semibold leading-tight ${isBlockGray ? "text-muted-foreground line-through opacity-80" : "text-foreground"}`}>
+                    {s.subjectName}
+                  </span>
+                  <span className="shrink-0 text-[8px] text-muted-foreground">{s.minutes}m</span>
+                </div>
+                {hasTopics && (
+                  <p className="truncate text-[8px] leading-tight text-muted-foreground">
+                    <span className={completedTopics.has(`${s.subjectId}-${s.topics[0]}`) ? "line-through opacity-60" : ""}>
+                      {s.topics[0]}
+                    </span>
+                    {s.topics.length > 1 ? ` +${s.topics.length - 1}` : ""}
+                  </p>
+                )}
               </div>
-              {s.topics.length > 0 && (
-                <p className="truncate text-[8px] leading-tight text-muted-foreground">
-                  {s.topics[0]}{s.topics.length > 1 ? ` +${s.topics.length - 1}` : ""}
-                </p>
-              )}
-            </div>
-          ))}
+            )
+          })}
           {extra > 0 && (
             <span className="text-[8px] text-muted-foreground">+{extra} mat.</span>
           )}
@@ -194,8 +215,11 @@ function DayCell({ day, inMonth, onClick }: {
 
 // ─── DayDetail ───────────────────────────────────────────────
 
-function DayDetailDialog({ day, open, onClose }: {
-  day: CalendarDay | null; open: boolean; onClose: () => void;
+function DayDetailDialog({ day, open, onClose, completedTopics }: {
+  day: CalendarDay | null; 
+  open: boolean; 
+  onClose: () => void;
+  completedTopics: Set<string>;
 }) {
   if (!day) return null;
   const label = format(parseISO(day.date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -239,40 +263,58 @@ function DayDetailDialog({ day, open, onClose }: {
             </div>
           )}
 
-          {!day.isPast && merged.length > 0 && (
+          {merged.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Planejado</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Planejado
+                </p>
                 <span className="text-xs font-bold text-foreground">{formatDuration(totalPlanned)}</span>
               </div>
-              {merged.map((s, i) => (
-                <div
-                  key={i}
-                  className="rounded-sm border p-3"
-                  style={{ borderLeftColor: s.subjectColor, borderLeftWidth: 3 }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{s.subjectName}</p>
-                      {s.topics.map((t, ti) => (
-                        <p key={ti} className="mt-0.5 text-xs text-muted-foreground">• {t}</p>
-                      ))}
+              {merged.map((s, i) => {
+                const hasTopics = s.topics.length > 0;
+                const allTopicsStudied = hasTopics && s.topics.every(t => completedTopics.has(`${s.subjectId}-${t}`));
+                const isBlockGray = allTopicsStudied || (!hasTopics && day.isPast);
+
+                return (
+                  <div
+                    key={i}
+                    className={`rounded-sm border p-3 ${isBlockGray ? "bg-muted/30 opacity-70" : ""}`}
+                    style={!isBlockGray 
+                      ? { borderLeftColor: s.subjectColor, borderLeftWidth: 3 } 
+                      : { borderLeftColor: "hsl(var(--muted-foreground) / 0.4)", borderLeftWidth: 3 }
+                    }
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className={`text-sm font-semibold ${isBlockGray ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                          {s.subjectName}
+                        </p>
+                        {s.topics.map((t, ti) => {
+                          const isTopicStudied = completedTopics.has(`${s.subjectId}-${t}`);
+                          return (
+                            <p key={ti} className={`mt-0.5 text-xs text-muted-foreground ${isTopicStudied ? "line-through opacity-80" : ""}`}>
+                              • {t} {isTopicStudied && "(Concluído)"}
+                            </p>
+                          )
+                        })}
+                      </div>
+                      <span className={`shrink-0 text-sm font-bold ${isBlockGray ? "text-muted-foreground" : "text-foreground"}`}>
+                        {formatDuration(s.minutes)}
+                      </span>
                     </div>
-                    <span className="shrink-0 text-sm font-bold text-foreground">
-                      {formatDuration(s.minutes)}
-                    </span>
+                    {s.cycleNumber && (
+                      <p className="mt-1.5 text-[10px] text-muted-foreground">
+                        Ciclo {s.cycleNumber}
+                      </p>
+                    )}
                   </div>
-                  {s.cycleNumber && (
-                    <p className="mt-1.5 text-[10px] text-muted-foreground">
-                      Ciclo {s.cycleNumber}
-                    </p>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
-          {!day.isPast && merged.length === 0 && !day.isExamDay && (
+          {merged.length === 0 && !day.isExamDay && (
             <p className="text-sm text-muted-foreground">
               {day.isStudyDay
                 ? "Nenhum tópico alocado para este dia."
@@ -415,16 +457,17 @@ export default function CalendarPage() {
   const [activePlanId, setActivePlanId] = useState(globalPlanId ?? "");
   const [allPlans, setAllPlans] = useState<StudyPlan[]>(globalPlans ?? []);
   
-  // Estado para armazenar a preferência de visualização (Semana ou Mês)
+  // Lista de chaves (subjectId-topicName) dos tópicos estudados (100% progresso)
+  const [completedTopics, setCompletedTopics] = useState<Set<string>>(new Set());
+  
   const [viewMode, setViewMode] = useState<"month" | "week">(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kofre_calendar_view");
       if (saved === "month" || saved === "week") return saved;
     }
-    return "month"; // Padrão
+    return "month";
   });
 
-  // Salva no localStorage sempre que alterar a visualização
   useEffect(() => {
     localStorage.setItem("kofre_calendar_view", viewMode);
   }, [viewMode]);
@@ -452,6 +495,19 @@ export default function CalendarPage() {
         rawSubjects.map(async s => ({ ...s, topics: await getTopics(planId, s.id) }))
       );
 
+      // --- LOGICA DE PROGRESSO: Salvar num Set quais tópicos estão 100% ---
+      const newCompleted = new Set<string>();
+      subjectsWithTopics.forEach(subject => {
+        subject.topics.forEach(topic => {
+          // Usa 100% de conclusão para considerar o tópico totalmente estudado
+          if (getTopicProgressPercent(topic.progress) === 100) {
+            newCompleted.add(`${subject.id}-${topic.name}`);
+          }
+        });
+      });
+      setCompletedTopics(newCompleted);
+      // -------------------------------------------------------------------
+
       const plan = availPlans.find(p => p.id === planId);
       if (!plan) { setLoading(false); return; }
 
@@ -476,7 +532,6 @@ export default function CalendarPage() {
     loadData(id);
   };
 
-  // Funções de navegação do calendário
   const handlePrevDate = () => {
     if (viewMode === "month") setBaseDate(d => subMonths(d, 1));
     else setBaseDate(d => subWeeks(d, 1));
@@ -487,7 +542,6 @@ export default function CalendarPage() {
     else setBaseDate(d => addWeeks(d, 1));
   };
 
-  // Cálculo da Grid e Label do Calendário
   const { weekRows, dateLabel } = useMemo(() => {
     if (viewMode === "month") {
       const start = startOfMonth(baseDate);
@@ -505,11 +559,10 @@ export default function CalendarPage() {
         dateLabel: format(baseDate, "MMMM 'de' yyyy", { locale: ptBR }) 
       };
     } else {
-      // Visualização por Semana (Começa no Domingo)
       const start = startOfWeek(baseDate, { weekStartsOn: 0 }); 
       const end = endOfWeek(baseDate, { weekStartsOn: 0 });
       const allDays = eachDayOfInterval({ start, end });
-      const rows = [allDays]; // Apenas 1 linha, sem dias nulos
+      const rows = [allDays]; 
 
       const startMonth = format(start, "MMM", { locale: ptBR });
       const endMonth = format(end, "MMM", { locale: ptBR });
@@ -536,7 +589,6 @@ export default function CalendarPage() {
     setDetailOpen(true);
   };
 
-  // Stats
   const daysUntilExam = useMemo(() => {
     if (!selectedPlan?.examDate) return null;
     const diff = Math.ceil((new Date(selectedPlan.examDate).getTime() - Date.now()) / 86400000);
@@ -572,7 +624,6 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="mb-1 flex items-center gap-2 text-sm font-medium text-primary">
@@ -587,17 +638,8 @@ export default function CalendarPage() {
               : ""}
           </p>
         </div>
-        <Select value={activePlanId} onValueChange={(id) => id && handlePlanChange(id)}>
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="Selecione o planejamento" />
-          </SelectTrigger>
-          <SelectContent>
-            {allPlans.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
       </div>
 
-      {/* No plan configured */}
       {!selectedPlan?.examDate && (
         <div className="flex items-center gap-3 rounded-sm border border-amber-500/30 bg-amber-500/10 p-4">
           <AlertCircle className="h-5 w-5 shrink-0 text-amber-400" />
@@ -607,7 +649,6 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Stats */}
       {calendarPlan && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="glass rounded-sm p-4">
@@ -633,15 +674,12 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Cycle timeline */}
       {calendarPlan && (
         <CycleTimeline summaries={calendarPlan.cycleSummaries} examDate={calendarPlan.examDate} />
       )}
 
-      {/* Calendar */}
       <div className="glass rounded-sm p-3 sm:p-5">
         
-        {/* Month/Week nav */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center justify-between sm:justify-start gap-2">
             <Button variant="ghost" size="icon" onClick={handlePrevDate}>
@@ -655,7 +693,6 @@ export default function CalendarPage() {
             </Button>
           </div>
 
-          {/* Toggle Semana/Mês */}
           <div className="flex bg-muted p-1 rounded-md max-w-fit self-end sm:self-auto">
             <button
               onClick={() => setViewMode('week')}
@@ -676,7 +713,6 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Weekday headers */}
         <div className="mb-1 grid grid-cols-7 gap-1">
           {WEEKDAY_LABELS.map(d => (
             <div key={d} className="py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -685,7 +721,6 @@ export default function CalendarPage() {
           ))}
         </div>
 
-        {/* Day grid */}
         <div className="space-y-1">
           {weekRows.map((week, wi) => (
             <div key={wi} className="grid grid-cols-7 gap-1">
@@ -694,7 +729,6 @@ export default function CalendarPage() {
                 const dateStr = format(date, "yyyy-MM-dd");
                 const day = calendarPlan?.days.get(dateStr);
                 
-                // Na visualização de semana, queremos que todos os dias fiquem visíveis (ativos)
                 const inMonth = viewMode === "month" ? isSameMonth(date, baseDate) : true;
                 
                 if (!day) {
@@ -707,13 +741,20 @@ export default function CalendarPage() {
                     </div>
                   );
                 }
-                return <DayCell key={di} day={day} inMonth={inMonth} onClick={() => handleDayClick(date)} />;
+                return (
+                  <DayCell 
+                    key={di} 
+                    day={day} 
+                    inMonth={inMonth} 
+                    onClick={() => handleDayClick(date)} 
+                    completedTopics={completedTopics} // <- Aqui passamos o que está concluído
+                  />
+                );
               })}
             </div>
           ))}
         </div>
 
-        {/* Legend */}
         <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-sm bg-primary" /> Hoje
@@ -736,7 +777,12 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <DayDetailDialog day={selectedDay} open={detailOpen} onClose={() => setDetailOpen(false)} />
+      <DayDetailDialog 
+        day={selectedDay} 
+        open={detailOpen} 
+        onClose={() => setDetailOpen(false)} 
+        completedTopics={completedTopics} 
+      />
     </div>
   );
 }
