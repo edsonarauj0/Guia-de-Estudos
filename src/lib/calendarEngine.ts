@@ -76,6 +76,7 @@ interface DistItem {
   topicId?: string;
   topicName?: string;
   plannedMinutes: number;
+  remainingMinutesRound0?: number; // Adicionado para controlar os minutos restantes reais
 }
 
 export function buildCalendarPlan(params: {
@@ -141,7 +142,7 @@ export function buildCalendarPlan(params: {
     futureDays.map(([d, day]) => [d, day.availableMinutes])
   );
 
-  // Build base template items (one full round of all cycles)
+  // Build base template items
   const sortedCycles = [...cycles]
     .filter(c => c.status !== "archived")
     .sort((a, b) => (a.cycleNumber ?? 0) - (b.cycleNumber ?? 0));
@@ -150,10 +151,39 @@ export function buildCalendarPlan(params: {
   const maxBaseCycleNum_ref = { val: 0 };
 
   if (sortedCycles.length > 0) {
+    // 1. Calcula o tempo JÁ ESTUDADO para os itens do ciclo ativo
+    const activeCycle = sortedCycles.find(c => c.status === 'active');
+    const studiedByItem = new Map<string, number>();
+
+    if (activeCycle) {
+      activeCycle.items.forEach(item => studiedByItem.set(item.id, 0));
+      const relevantSessions = sessions.filter(session =>
+        session.cycleId === activeCycle.id ||
+        (!session.cycleId && new Date(session.startedAt) >= new Date(activeCycle.createdAt))
+      );
+      for (const session of relevantSessions) {
+        const exactItem = activeCycle.items.find(item => item.topicId === session.topicId);
+        const subjectItems = activeCycle.items.filter(item => item.subjectId === session.subjectId);
+        const targetItem = exactItem
+          ?? subjectItems.find(item => (studiedByItem.get(item.id) ?? 0) < item.plannedMinutes)
+          ?? subjectItems[0];
+        if (targetItem) {
+          studiedByItem.set(targetItem.id, (studiedByItem.get(targetItem.id) ?? 0) + session.durationMinutes);
+        }
+      }
+    }
+
     for (const cycle of sortedCycles) {
       const cn = cycle.cycleNumber ?? 1;
       if (cn > maxBaseCycleNum_ref.val) maxBaseCycleNum_ref.val = cn;
+      
+      const isActive = cycle.status === 'active';
+
       for (const item of cycle.items) {
+        const studied = isActive ? (studiedByItem.get(item.id) ?? 0) : 0;
+        // O tempo restante é o planejado menos o que já foi estudado (no mínimo 0)
+        const remaining0 = Math.max(0, item.plannedMinutes - studied);
+
         baseItems.push({
           baseCycleNumber: cn,
           cycleId: cycle.id,
@@ -164,11 +194,12 @@ export function buildCalendarPlan(params: {
           topicId: item.topicId,
           topicName: item.topicName,
           plannedMinutes: item.plannedMinutes,
+          remainingMinutesRound0: isActive ? remaining0 : item.plannedMinutes,
         });
       }
     }
   } else {
-    // Auto-generate from subjects + weight
+    // Auto-generate from subjects + weight (fallback)
     const totalWeight = subjectsWithTopics.reduce((a, s) => a + s.weight, 0) || 100;
     const totalFutureMin = futureDays.reduce((a, [, d]) => a + d.availableMinutes, 0);
     const sortedSubs = [...subjectsWithTopics].sort((a, b) => b.weight - a.weight);
@@ -223,14 +254,29 @@ export function buildCalendarPlan(params: {
     return cs;
   };
 
+  // --- TOPIC PROGRESSION TRACKER ---
+  const subjectTopicMap = new Map<string, Topic[]>();
+  for (const sub of subjectsWithTopics) {
+    subjectTopicMap.set(sub.id, [...sub.topics].sort((a,b) => (a.order ?? 0) - (b.order ?? 0)));
+  }
+  const currentTopicIndex = new Map<string, number>();
+  // ---------------------------------
+
   outerLoop: while (dayIdx < futureDays.length && round < MAX_ROUNDS) {
-    let anyDistributed = false;
     let lastCycleNum = -1;
 
     for (const base of baseItems) {
       if (dayIdx >= futureDays.length) break outerLoop;
 
       const actualCycleNum = base.baseCycleNumber + cycleOffset;
+
+      // Se for a primeira rodada, usa os minutos restantes. Nas próximas, usa os minutos totais planejados.
+      let left = round === 0 && base.remainingMinutesRound0 !== undefined 
+                 ? base.remainingMinutesRound0 
+                 : base.plannedMinutes;
+
+      // Se já foi totalmente estudado na vida real, pula a projeção deste item.
+      if (left <= 0) continue;
 
       // New cycle starts
       if (actualCycleNum !== lastCycleNum) {
@@ -246,7 +292,29 @@ export function buildCalendarPlan(params: {
         }
       }
 
-      let left = base.plannedMinutes;
+      // --- LOGICA INTELIGENTE DE ROTAÇÃO DE TÓPICOS ---
+      let slotTopicId = base.topicId;
+      let slotTopicName = base.topicName;
+      const topics = subjectTopicMap.get(base.subjectId) || [];
+      
+      if (round > 0 && topics.length > 0) {
+        let tIdx = currentTopicIndex.get(base.subjectId);
+        
+        // Se é a primeira vez rodando o auto-avanço, descobre onde o ciclo original parou
+        if (tIdx === undefined) {
+           const idx = topics.findIndex(t => t.id === base.topicId);
+           tIdx = idx >= 0 ? idx + 1 : 0; // Inicia do PRÓXIMO tópico
+        }
+        
+        const topic = topics[tIdx % topics.length];
+        slotTopicId = topic.id;
+        slotTopicName = topic.name;
+        
+        // Salva o próximo índice para a próxima rodada
+        currentTopicIndex.set(base.subjectId, tIdx + 1);
+      }
+      // ------------------------------------------------
+
       while (left > 0 && dayIdx < futureDays.length) {
         const [dateStr] = futureDays[dayIdx];
         const avail = remaining.get(dateStr) ?? 0;
@@ -263,8 +331,8 @@ export function buildCalendarPlan(params: {
           subjectId: base.subjectId,
           subjectName: base.subjectName,
           subjectColor: base.subjectColor,
-          topicId: base.topicId,
-          topicName: base.topicName,
+          topicId: slotTopicId,
+          topicName: slotTopicName,
           minutes: alloc,
         });
 
@@ -273,14 +341,11 @@ export function buildCalendarPlan(params: {
         cs.endDate = dateStr;
         if (!cs.subjects.some(s => s.id === base.subjectId))
           cs.subjects.push({ id: base.subjectId, name: base.subjectName, color: base.subjectColor });
-        if (base.topicId) cs.topicCount += 1;
+        if (slotTopicId) cs.topicCount += 1;
 
-        anyDistributed = true;
         if ((remaining.get(dateStr) ?? 0) === 0) dayIdx++;
       }
     }
-
-    if (!anyDistributed) break;
 
     cycleOffset += maxBaseCycleNum;
     round++;

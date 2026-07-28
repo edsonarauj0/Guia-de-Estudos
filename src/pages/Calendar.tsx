@@ -7,18 +7,18 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Clock,
-  Flag, Info, Layers3, Trophy, AlertCircle,
+  Flag, Info, Layers3, Trophy, AlertCircle, RotateCcw,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { usePlanContext } from "@/contexts/PlanContext";
 import {
   getStudyPlans, getSubjects, getTopics,
-  getStudyCycles, getSessions,
+  getStudyCycles, getSessions, getReviewCards,
 } from "@/lib/firestore";
 import { buildCalendarPlan } from "@/lib/calendarEngine";
 import type { CalendarDay, CalendarSlot, CycleSummary } from "@/lib/calendarEngine";
-import type { StudyPlan } from "@/types";
-import { formatDuration, getTopicProgressPercent } from "@/lib/helpers"; // Import do getTopicProgressPercent
+import type { StudyPlan, ReviewCard } from "@/types";
+import { formatDuration, getTopicProgressPercent } from "@/lib/helpers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,12 +91,16 @@ function DayCell({
   day, 
   inMonth, 
   onClick,
-  completedTopics 
+  completedTopics,
+  subjectColors,
+  reviews
 }: {
   day: CalendarDay;
   inMonth: boolean;
   onClick: () => void;
   completedTopics: Set<string>;
+  subjectColors: Record<string, string>;
+  reviews: ReviewCard[];
 }) {
   const merged = useMemo(() => mergeBySubject(day.plannedSlots), [day.plannedSlots]);
   const shown = merged.slice(0, 2);
@@ -144,7 +148,6 @@ function DayCell({
         )}
       </div>
 
-      {/* Mini barra de histórico real do dia */}
       {day.isPast && day.isStudyDay && (
         <div className="mb-1 flex items-center gap-1">
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
@@ -159,32 +162,40 @@ function DayCell({
         </div>
       )}
 
-      {/* Blocos planejados (Matérias/Tópicos) */}
       {shown.length > 0 && (
         <div className="flex flex-col gap-0.5 mt-0.5">
           {shown.map((s, i) => {
             const hasTopics = s.topics.length > 0;
-            // Um bloco é considerado cinza se TODOS os tópicos listados nele já foram estudados 100%
             const allTopicsStudied = hasTopics && s.topics.every(t => completedTopics.has(`${s.subjectId}-${t}`));
-            // Caso não tenha tópico atrelado, deixamos cinza apenas se for um dia passado.
             const isBlockGray = allTopicsStudied || (!hasTopics && day.isPast);
+            
+            // Garantindo que a cor venha da base de dados sempre:
+            const color = subjectColors[s.subjectId] || s.subjectColor || "var(--primary)";
 
             return (
               <div
                 key={i}
                 className={`rounded-sm px-1 py-0.5 transition-colors ${isBlockGray ? "bg-muted/50" : ""}`}
                 style={!isBlockGray ? {
-                  background: s.subjectColor + "18",
-                  borderLeft: `2px solid ${s.subjectColor}`,
+                  backgroundColor: `${color}20`,
+                  borderLeft: `2px solid ${color}`,
                 } : {
                   borderLeft: `2px solid hsl(var(--muted-foreground) / 0.3)`
                 }}
               >
                 <div className="flex items-baseline justify-between gap-0.5">
-                  <span className={`truncate text-[9px] font-semibold leading-tight ${isBlockGray ? "text-muted-foreground line-through opacity-80" : "text-foreground"}`}>
+                  <span 
+                    className={`truncate text-[9px] font-semibold leading-tight ${isBlockGray ? "text-muted-foreground line-through opacity-80" : ""}`}
+                    style={!isBlockGray ? { color: color } : {}}
+                  >
                     {s.subjectName}
                   </span>
-                  <span className="shrink-0 text-[8px] text-muted-foreground">{s.minutes}m</span>
+                  <span 
+                    className={`shrink-0 text-[8px] ${isBlockGray ? "text-muted-foreground" : "opacity-80"}`}
+                    style={!isBlockGray ? { color: color } : {}}
+                  >
+                    {s.minutes}m
+                  </span>
                 </div>
                 {hasTopics && (
                   <p className="truncate text-[8px] leading-tight text-muted-foreground">
@@ -203,6 +214,14 @@ function DayCell({
         </div>
       )}
 
+      {/* BLOCO DE REVISÕES */}
+      {reviews.length > 0 && (
+        <div className="mt-1 flex w-fit items-center gap-1 rounded-sm border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-medium text-sky-600 dark:text-sky-400">
+          <RotateCcw className="h-2.5 w-2.5 shrink-0" />
+          <span>{reviews.length} revis{reviews.length === 1 ? 'ão' : 'ões'}</span>
+        </div>
+      )}
+
       {pal && !day.isPast && (
         <div
           className="pointer-events-none absolute bottom-0 left-0 top-0 w-0.5 rounded-l-sm"
@@ -215,11 +234,13 @@ function DayCell({
 
 // ─── DayDetail ───────────────────────────────────────────────
 
-function DayDetailDialog({ day, open, onClose, completedTopics }: {
+function DayDetailDialog({ day, open, onClose, completedTopics, subjectColors, reviews }: {
   day: CalendarDay | null; 
   open: boolean; 
   onClose: () => void;
   completedTopics: Set<string>;
+  subjectColors: Record<string, string>;
+  reviews: ReviewCard[];
 }) {
   if (!day) return null;
   const label = format(parseISO(day.date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -228,7 +249,7 @@ function DayDetailDialog({ day, open, onClose, completedTopics }: {
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="capitalize">{label}</DialogTitle>
         </DialogHeader>
@@ -275,19 +296,29 @@ function DayDetailDialog({ day, open, onClose, completedTopics }: {
                 const hasTopics = s.topics.length > 0;
                 const allTopicsStudied = hasTopics && s.topics.every(t => completedTopics.has(`${s.subjectId}-${t}`));
                 const isBlockGray = allTopicsStudied || (!hasTopics && day.isPast);
+                
+                // Garantindo que a cor venha da base de dados sempre:
+                const color = subjectColors[s.subjectId] || s.subjectColor || "var(--primary)";
 
                 return (
                   <div
                     key={i}
                     className={`rounded-sm border p-3 ${isBlockGray ? "bg-muted/30 opacity-70" : ""}`}
                     style={!isBlockGray 
-                      ? { borderLeftColor: s.subjectColor, borderLeftWidth: 3 } 
+                      ? { 
+                          borderLeftColor: color, 
+                          borderLeftWidth: 3,
+                          backgroundColor: `${color}0D` // fundo suave
+                        } 
                       : { borderLeftColor: "hsl(var(--muted-foreground) / 0.4)", borderLeftWidth: 3 }
                     }
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className={`text-sm font-semibold ${isBlockGray ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                        <p 
+                          className={`text-sm font-semibold ${isBlockGray ? "text-muted-foreground line-through" : ""}`}
+                          style={!isBlockGray ? { color: color } : {}}
+                        >
                           {s.subjectName}
                         </p>
                         {s.topics.map((t, ti) => {
@@ -299,7 +330,10 @@ function DayDetailDialog({ day, open, onClose, completedTopics }: {
                           )
                         })}
                       </div>
-                      <span className={`shrink-0 text-sm font-bold ${isBlockGray ? "text-muted-foreground" : "text-foreground"}`}>
+                      <span 
+                        className={`shrink-0 text-sm font-bold ${isBlockGray ? "text-muted-foreground" : ""}`}
+                        style={!isBlockGray ? { color: color } : {}}
+                      >
                         {formatDuration(s.minutes)}
                       </span>
                     </div>
@@ -321,6 +355,41 @@ function DayDetailDialog({ day, open, onClose, completedTopics }: {
                 : "Dia sem estudo configurado no plano."}
             </p>
           )}
+
+          {/* SESSÃO DETALHADA DE REVISÕES */}
+          {reviews.length > 0 && (
+            <div className="space-y-2 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Revisões Agendadas
+                </p>
+                <span className="text-xs font-bold text-sky-600 dark:text-sky-400">{reviews.length}</span>
+              </div>
+              <div className="grid gap-2">
+                {reviews.map((r, i) => {
+                  const color = subjectColors[r.subjectId] || r.subjectColor || "var(--primary)";
+                  return (
+                    <div
+                      key={`rev-${i}`}
+                      className="rounded-sm border p-3 bg-sky-500/5"
+                      style={{ borderLeftColor: color, borderLeftWidth: 3 }}
+                    >
+                      <div className="flex flex-col min-w-0">
+                        <p className="text-sm font-semibold" style={{ color }}>
+                          {r.subjectName}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          • {r.topicName}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
       </DialogContent>
     </Dialog>
@@ -329,7 +398,7 @@ function DayDetailDialog({ day, open, onClose, completedTopics }: {
 
 // ─── Cycle timeline ───────────────────────────────────────────
 
-function CycleTimeline({ summaries, examDate }: { summaries: CycleSummary[]; examDate?: string }) {
+function CycleTimeline({ summaries, examDate, subjectColors }: { summaries: CycleSummary[]; examDate?: string; subjectColors: Record<string, string> }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -396,11 +465,22 @@ function CycleTimeline({ summaries, examDate }: { summaries: CycleSummary[]; exa
                   
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {cs.subjects.slice(0, 3).map((s) => (
-                        <span key={s.id} className="rounded-sm bg-muted px-1.5 py-0.5 text-[10px]">
-                          {s.name}
-                        </span>
-                      ))}
+                      {cs.subjects.slice(0, 3).map((s: any) => {
+                        const color = subjectColors[s.id] || s.color || 'var(--primary)';
+                        return (
+                          <span 
+                            key={s.id} 
+                            className="rounded-sm px-1.5 py-0.5 text-[10px] font-medium border"
+                            style={{
+                              backgroundColor: `${color}15`,
+                              borderColor: `${color}30`,
+                              color: color
+                            }}
+                          >
+                            {s.name}
+                          </span>
+                        );
+                      })}
                       {cs.subjects.length > 3 && (
                         <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[10px]">
                           +{cs.subjects.length - 3}
@@ -457,8 +537,13 @@ export default function CalendarPage() {
   const [activePlanId, setActivePlanId] = useState(globalPlanId ?? "");
   const [allPlans, setAllPlans] = useState<StudyPlan[]>(globalPlans ?? []);
   
-  // Lista de chaves (subjectId-topicName) dos tópicos estudados (100% progresso)
   const [completedTopics, setCompletedTopics] = useState<Set<string>>(new Set());
+  
+  // Guardamos as cores reais das matérias para sobrepor a cor antiga do calendário
+  const [subjectColors, setSubjectColors] = useState<Record<string, string>>({});
+
+  // Armazena as revisões mapeadas
+  const [reviewCards, setReviewCards] = useState<ReviewCard[]>([]);
   
   const [viewMode, setViewMode] = useState<"month" | "week">(() => {
     if (typeof window !== "undefined") {
@@ -483,30 +568,38 @@ export default function CalendarPage() {
     if (!user || !planId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [availPlans, rawSubjects, planCycles, planSessions] = await Promise.all([
+      // 1. Buscamos todas as coleções, agora incluindo as revisões agendadas!
+      const [availPlans, rawSubjects, planCycles, planSessions, fetchedReviews] = await Promise.all([
         getStudyPlans(user.uid),
         getSubjects(planId),
         getStudyCycles(user.uid, planId),
         getSessions(user.uid, planId),
+        getReviewCards(user.uid, planId)
       ]);
+      
       setAllPlans(availPlans);
+      setReviewCards(fetchedReviews);
+
+      // Armazena as cores reais no state
+      const colorsMap: Record<string, string> = {};
+      rawSubjects.forEach(s => {
+        if (s.id && s.color) colorsMap[s.id] = s.color;
+      });
+      setSubjectColors(colorsMap);
 
       const subjectsWithTopics = await Promise.all(
         rawSubjects.map(async s => ({ ...s, topics: await getTopics(planId, s.id) }))
       );
 
-      // --- LOGICA DE PROGRESSO: Salvar num Set quais tópicos estão 100% ---
       const newCompleted = new Set<string>();
       subjectsWithTopics.forEach(subject => {
         subject.topics.forEach(topic => {
-          // Usa 100% de conclusão para considerar o tópico totalmente estudado
           if (getTopicProgressPercent(topic.progress) === 100) {
             newCompleted.add(`${subject.id}-${topic.name}`);
           }
         });
       });
       setCompletedTopics(newCompleted);
-      // -------------------------------------------------------------------
 
       const plan = availPlans.find(p => p.id === planId);
       if (!plan) { setLoading(false); return; }
@@ -578,6 +671,16 @@ export default function CalendarPage() {
     }
   }, [baseDate, viewMode]);
 
+  // Agrupa as revisões para consulta super-rápida pelos componentes do dia
+  const reviewsByDate = useMemo(() => {
+    const map = new Map<string, ReviewCard[]>();
+    for (const card of reviewCards) {
+      if (!map.has(card.nextReview)) map.set(card.nextReview, []);
+      map.get(card.nextReview)!.push(card);
+    }
+    return map;
+  }, [reviewCards]);
+
   const selectedPlan = allPlans.find(p => p.id === activePlanId);
 
   const handleDayClick = (date: Date) => {
@@ -638,6 +741,14 @@ export default function CalendarPage() {
               : ""}
           </p>
         </div>
+        <Select value={activePlanId} onValueChange={(id) => id && handlePlanChange(id)}>
+          <SelectTrigger className="w-56">
+            <SelectValue placeholder="Selecione o planejamento" />
+          </SelectTrigger>
+          <SelectContent>
+            {allPlans.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {!selectedPlan?.examDate && (
@@ -675,7 +786,11 @@ export default function CalendarPage() {
       )}
 
       {calendarPlan && (
-        <CycleTimeline summaries={calendarPlan.cycleSummaries} examDate={calendarPlan.examDate} />
+        <CycleTimeline 
+          summaries={calendarPlan.cycleSummaries} 
+          examDate={calendarPlan.examDate} 
+          subjectColors={subjectColors} // Passando as cores aqui
+        />
       )}
 
       <div className="glass rounded-sm p-3 sm:p-5">
@@ -741,13 +856,19 @@ export default function CalendarPage() {
                     </div>
                   );
                 }
+
+                // Resgata os cartões de revisão programados especificamente para essa data
+                const dayReviews = reviewsByDate.get(dateStr) || [];
+
                 return (
                   <DayCell 
                     key={di} 
                     day={day} 
                     inMonth={inMonth} 
                     onClick={() => handleDayClick(date)} 
-                    completedTopics={completedTopics} // <- Aqui passamos o que está concluído
+                    completedTopics={completedTopics}
+                    subjectColors={subjectColors}
+                    reviews={dayReviews} // Injeta as revisões aqui
                   />
                 );
               })}
@@ -769,6 +890,9 @@ export default function CalendarPage() {
             <span className="h-3 w-3 rounded-sm border-l-2 border-violet-500 bg-background" /> Ciclo N
           </span>
           <span className="flex items-center gap-1.5">
+            <RotateCcw className="h-3 w-3 text-sky-500" /> Revisões
+          </span>
+          <span className="flex items-center gap-1.5">
             <Flag className="h-3 w-3" /> Fim do ciclo
           </span>
           <span className="ml-auto flex items-center gap-1">
@@ -781,7 +905,9 @@ export default function CalendarPage() {
         day={selectedDay} 
         open={detailOpen} 
         onClose={() => setDetailOpen(false)} 
-        completedTopics={completedTopics} 
+        completedTopics={completedTopics}
+        subjectColors={subjectColors}
+        reviews={selectedDay ? (reviewsByDate.get(selectedDay.date) || []) : []} // E aqui também
       />
     </div>
   );
