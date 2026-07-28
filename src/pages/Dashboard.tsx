@@ -126,9 +126,8 @@ export default function DashboardPage() {
               <tr>
                 <th className="w-12 px-3 py-2.5 font-medium">#</th>
                 <th className="px-3 py-2.5 font-medium">Matéria</th>
-                <th className="px-3 py-2.5 font-medium">Tópico</th>
-                <th className="px-3 py-2.5 text-right font-medium">Planejado</th>
-                <th className="px-3 py-2.5 text-right font-medium">Realizado</th>
+                <th className="px-3 py-2.5 text-right font-medium w-20">Planejado</th>
+                <th className="px-3 py-2.5 text-right font-medium w-20">Realizado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -144,8 +143,7 @@ export default function DashboardPage() {
                         {index + 1}
                       </span>
                     </td>
-                    <td className="max-w-[160px] px-3 py-2 font-medium truncate" title={item.subjectName}>{item.subjectName}</td>
-                    <td className="max-w-[260px] px-3 py-2 text-muted-foreground truncate" title={item.topicName}>{item.topicName}</td>
+                    <td className="max-w-[100px] px-2 py-2 font-medium truncate" title={item.subjectName}>{item.subjectName}</td>
                     <td className="px-3 py-2 text-right whitespace-nowrap text-muted-foreground">{formatDuration(item.plannedMinutes)}</td>
                     <td className={done ? 'px-3 py-2 text-right whitespace-nowrap font-medium text-emerald-500' : 'px-3 py-2 text-right whitespace-nowrap text-muted-foreground'}>
                       {formatDuration(item.actualMinutes)}
