@@ -1,5 +1,5 @@
 import { addDays, format, startOfDay } from "date-fns";
-import type { StudyCycle, StudyPlan, StudySession, Subject, Topic, WeeklyGoal } from "@/types";
+import type { StudyCycle, StudyCycleItem, StudyPlan, StudySession, Subject, Topic, WeeklyGoal } from "@/types";
 import { getDayOfWeek } from "./helpers";
 
 // ─── Public types ──────────────────────────────────────────────
@@ -38,6 +38,7 @@ export interface CycleSummary {
   totalMinutes: number;
   subjects: { id: string; name: string; color: string }[];
   topicCount: number;
+  items: StudyCycleItem[];
 }
 
 export interface CalendarPlan {
@@ -76,7 +77,7 @@ interface DistItem {
   topicId?: string;
   topicName?: string;
   plannedMinutes: number;
-  remainingMinutesRound0?: number; // Adicionado para controlar os minutos restantes reais
+  remainingMinutesRound0?: number;
 }
 
 export function buildCalendarPlan(params: {
@@ -100,14 +101,12 @@ export function buildCalendarPlan(params: {
     sunday:    plan.dailyGoalHours?.sunday    ?? DEFAULT_WEEKLY_GOAL.sunday,
   };
 
-  // Historical minutes per date
   const historicalMap = new Map<string, number>();
   for (const s of sessions) {
     const d = s.startedAt.slice(0, 10);
     historicalMap.set(d, (historicalMap.get(d) ?? 0) + s.durationMinutes);
   }
 
-  // Day map: 60 days back to examDate or horizon
   const mapStart = addDays(startOfDay(new Date()), -60);
   const rawEnd = examDateStr
     ? startOfDay(new Date(examDateStr + "T12:00:00"))
@@ -133,7 +132,6 @@ export function buildCalendarPlan(params: {
     cur = addDays(cur, 1);
   }
 
-  // Future study days (not exam day, not past)
   const futureDays = Array.from(days.entries())
     .filter(([d, day]) => d >= todayStr && day.isStudyDay && d !== examDateStr)
     .sort(([a], [b]) => a.localeCompare(b));
@@ -142,7 +140,6 @@ export function buildCalendarPlan(params: {
     futureDays.map(([d, day]) => [d, day.availableMinutes])
   );
 
-  // Build base template items
   const sortedCycles = [...cycles]
     .filter(c => c.status !== "archived")
     .sort((a, b) => (a.cycleNumber ?? 0) - (b.cycleNumber ?? 0));
@@ -151,7 +148,6 @@ export function buildCalendarPlan(params: {
   const maxBaseCycleNum_ref = { val: 0 };
 
   if (sortedCycles.length > 0) {
-    // 1. Calcula o tempo JÁ ESTUDADO para os itens do ciclo ativo
     const activeCycle = sortedCycles.find(c => c.status === 'active');
     const studiedByItem = new Map<string, number>();
 
@@ -181,7 +177,6 @@ export function buildCalendarPlan(params: {
 
       for (const item of cycle.items) {
         const studied = isActive ? (studiedByItem.get(item.id) ?? 0) : 0;
-        // O tempo restante é o planejado menos o que já foi estudado (no mínimo 0)
         const remaining0 = Math.max(0, item.plannedMinutes - studied);
 
         baseItems.push({
@@ -199,7 +194,6 @@ export function buildCalendarPlan(params: {
       }
     }
   } else {
-    // Auto-generate from subjects + weight (fallback)
     const totalWeight = subjectsWithTopics.reduce((a, s) => a + s.weight, 0) || 100;
     const totalFutureMin = futureDays.reduce((a, [, d]) => a + d.availableMinutes, 0);
     const sortedSubs = [...subjectsWithTopics].sort((a, b) => b.weight - a.weight);
@@ -234,33 +228,35 @@ export function buildCalendarPlan(params: {
   let dayIdx = 0;
   let cycleOffset = 0;
   let round = 0;
+  let globalSequenceNumber = 1;
 
   const getOrCreateSummary = (cycleNumber: number, baseName: string, cycleId?: string, roundIdx = 0): CycleSummary => {
-    let cs = cycleSummaries.find(c => c.cycleNumber === cycleNumber);
+    const uniqueKey = `${cycleId}-${roundIdx}`;
+    let cs = cycleSummaries.find(c => (c as any)._uniqueKey === uniqueKey);
     if (!cs) {
-      const label = roundIdx === 0 ? baseName : `${baseName} (${roundIdx + 1}ª vez)`;
+      const assignedNum = globalSequenceNumber++;
       cs = {
-        cycleNumber,
-        cycleName: label,
+        cycleNumber: assignedNum,
+        cycleName: `Ciclo ${assignedNum}`,
         cycleId: roundIdx === 0 ? cycleId : undefined,
         startDate: "",
         endDate: "",
         totalMinutes: 0,
         subjects: [],
         topicCount: 0,
-      };
+        items: [],
+        _uniqueKey: uniqueKey as any,
+      } as any;
       cycleSummaries.push(cs);
     }
     return cs;
   };
 
-  // --- TOPIC PROGRESSION TRACKER ---
   const subjectTopicMap = new Map<string, Topic[]>();
   for (const sub of subjectsWithTopics) {
     subjectTopicMap.set(sub.id, [...sub.topics].sort((a,b) => (a.order ?? 0) - (b.order ?? 0)));
   }
   const currentTopicIndex = new Map<string, number>();
-  // ---------------------------------
 
   outerLoop: while (dayIdx < futureDays.length && round < MAX_ROUNDS) {
     let lastCycleNum = -1;
@@ -268,52 +264,54 @@ export function buildCalendarPlan(params: {
     for (const base of baseItems) {
       if (dayIdx >= futureDays.length) break outerLoop;
 
-      const actualCycleNum = base.baseCycleNumber + cycleOffset;
+      const activeCs = getOrCreateSummary(base.baseCycleNumber, base.baseCycleName, base.cycleId, round);
+      const actualCycleNum = activeCs.cycleNumber;
 
-      // Se for a primeira rodada, usa os minutos restantes. Nas próximas, usa os minutos totais planejados.
       let left = round === 0 && base.remainingMinutesRound0 !== undefined 
                  ? base.remainingMinutesRound0 
                  : base.plannedMinutes;
 
-      // Se já foi totalmente estudado na vida real, pula a projeção deste item.
       if (left <= 0) continue;
 
-      // New cycle starts
       if (actualCycleNum !== lastCycleNum) {
         lastCycleNum = actualCycleNum;
         if (dayIdx < futureDays.length) {
           const firstDate = futureDays[dayIdx][0];
-          const cs = getOrCreateSummary(actualCycleNum, base.baseCycleName, base.cycleId, round);
-          if (!cs.startDate) {
-            cs.startDate = firstDate;
-            cs.endDate = firstDate;
+          if (!activeCs.startDate) {
+            activeCs.startDate = firstDate;
+            activeCs.endDate = firstDate;
             days.get(firstDate)!.cycleStarts.push(actualCycleNum);
           }
         }
       }
 
-      // --- LOGICA INTELIGENTE DE ROTAÇÃO DE TÓPICOS ---
       let slotTopicId = base.topicId;
       let slotTopicName = base.topicName;
       const topics = subjectTopicMap.get(base.subjectId) || [];
       
       if (round > 0 && topics.length > 0) {
         let tIdx = currentTopicIndex.get(base.subjectId);
-        
-        // Se é a primeira vez rodando o auto-avanço, descobre onde o ciclo original parou
         if (tIdx === undefined) {
            const idx = topics.findIndex(t => t.id === base.topicId);
-           tIdx = idx >= 0 ? idx + 1 : 0; // Inicia do PRÓXIMO tópico
+           tIdx = idx >= 0 ? idx + 1 : 0;
         }
-        
         const topic = topics[tIdx % topics.length];
         slotTopicId = topic.id;
         slotTopicName = topic.name;
-        
-        // Salva o próximo índice para a próxima rodada
         currentTopicIndex.set(base.subjectId, tIdx + 1);
       }
-      // ------------------------------------------------
+
+      // Adiciona o item à lista de itens do resumo do ciclo
+      const cycleItem: StudyCycleItem = {
+        id: `${base.subjectId}:${slotTopicId || 'no-topic'}`,
+        subjectId: base.subjectId,
+        subjectName: base.subjectName,
+        subjectColor: base.subjectColor,
+        topicId: slotTopicId,
+        topicName: slotTopicName,
+        plannedMinutes: left,
+      };
+      activeCs.items.push(cycleItem);
 
       while (left > 0 && dayIdx < futureDays.length) {
         const [dateStr] = futureDays[dayIdx];
@@ -327,7 +325,7 @@ export function buildCalendarPlan(params: {
         days.get(dateStr)!.plannedSlots.push({
           cycleNumber: actualCycleNum,
           cycleId: base.cycleId,
-          cycleName: getOrCreateSummary(actualCycleNum, base.baseCycleName, base.cycleId, round).cycleName,
+          cycleName: activeCs.cycleName,
           subjectId: base.subjectId,
           subjectName: base.subjectName,
           subjectColor: base.subjectColor,
@@ -336,12 +334,11 @@ export function buildCalendarPlan(params: {
           minutes: alloc,
         });
 
-        const cs = getOrCreateSummary(actualCycleNum, base.baseCycleName, base.cycleId, round);
-        cs.totalMinutes += alloc;
-        cs.endDate = dateStr;
-        if (!cs.subjects.some(s => s.id === base.subjectId))
-          cs.subjects.push({ id: base.subjectId, name: base.subjectName, color: base.subjectColor });
-        if (slotTopicId) cs.topicCount += 1;
+        activeCs.totalMinutes += alloc;
+        activeCs.endDate = dateStr;
+        if (!activeCs.subjects.some(s => s.id === base.subjectId))
+          activeCs.subjects.push({ id: base.subjectId, name: base.subjectName, color: base.subjectColor });
+        if (slotTopicId) activeCs.topicCount += 1;
 
         if ((remaining.get(dateStr) ?? 0) === 0) dayIdx++;
       }
@@ -351,12 +348,10 @@ export function buildCalendarPlan(params: {
     round++;
   }
 
-  // Mark cycle ends
   for (const cs of cycleSummaries) {
     if (cs.endDate) days.get(cs.endDate)?.cycleEnds.push(cs.cycleNumber);
   }
 
-  // Study ends = last day with a planned slot
   let studyEndsDate: string | undefined;
   const allSlottedDays = Array.from(days.entries())
     .filter(([, d]) => d.plannedSlots.length > 0)

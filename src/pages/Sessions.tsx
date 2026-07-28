@@ -10,9 +10,12 @@ import {
   HelpCircle,
   RotateCcw,
   Video,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { getSessions } from '@/lib/firestore';
+import { deleteSession, getSessions } from '@/lib/firestore';
 import { usePlanContext } from '@/contexts/PlanContext';
 import { formatDuration } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
@@ -26,6 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const SESSION_TYPES: Array<{
   value: SessionType;
@@ -44,6 +53,8 @@ export default function SessionsPage() {
   const { selectedPlanId, selectedPlan } = usePlanContext();
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<'all' | SessionType>('all');
   const [periodFilter, setPeriodFilter] = useState<'all' | '7' | '30' | '90'>('all');
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
@@ -62,6 +73,22 @@ export default function SessionsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const executeDeleteAll = async () => {
+    if (sessions.length === 0) return;
+    setDeletingAll(true);
+    try {
+      await Promise.all(sessions.map(session => deleteSession(session.id)));
+      setSessions([]);
+      toast.success('Todos os registros foram excluídos com sucesso.');
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao excluir os registros.');
+    } finally {
+      setDeletingAll(false);
+      setConfirmDeleteOpen(false);
+    }
+  };
 
   const filteredSessions = useMemo(() => sessions.filter(session => {
     if (typeFilter !== 'all' && session.type !== typeFilter) return false;
@@ -138,9 +165,20 @@ export default function SessionsPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={loadData} disabled={loading}>
+          <Button variant="outline" onClick={loadData} disabled={loading || deletingAll}>
             Atualizar
           </Button>
+          {sessions.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={() => setConfirmDeleteOpen(true)}
+              disabled={loading || deletingAll}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-4 w-4" />
+              Excluir histórico
+            </Button>
+          )}
         </div>
       </div>
 
@@ -256,6 +294,31 @@ export default function SessionsPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmação do Shadcn */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Excluir todo o histórico?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Tem certeza que deseja excluir <strong>TODOS os {sessions.length} registros de estudo</strong> deste planejamento? Esta ação é irreversível e zerará seu progresso de horas acumuladas.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)} disabled={deletingAll}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={executeDeleteAll} disabled={deletingAll}>
+                {deletingAll ? 'Excluindo tudo...' : 'Sim, excluir tudo'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <EditSessionModal
         session={editingSession}
