@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getReviewCards } from '@/lib/firestore';
+import { isDueToday } from '@/lib/sm2';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, BookOpen, BarChart3, PieChart, History,
@@ -26,8 +27,7 @@ export default function Sidebar() {
     (async () => {
       try {
         const cards = await getReviewCards(user.uid);
-        const today = new Date().toISOString().slice(0, 10);
-        const pending = cards.filter(c => c.nextReview <= today).length;
+        const pending = cards.filter(isDueToday).length;
         setReviewCount(pending);
       } catch (err) {
         console.error('Failed to load review count', err);
