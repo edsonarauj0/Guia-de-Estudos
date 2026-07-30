@@ -3,7 +3,6 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { usePlanContext } from '@/contexts/PlanContext';
 import { getSubjects, getTopics, getSessions, getQuestionLogs, getReviewCards, getStudyCycles, getStudyPlans } from '@/lib/firestore';
 import { calculatePlannerStats, calcTodayHours, calcStreak } from '@/lib/plannerEngine';
-import Countdown from '@/components/dashboard/Countdown';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
 import StudyConsistencyCard from '@/components/dashboard/StudyConsistencyCard';
 import SubjectProgressChart from '@/components/dashboard/SubjectProgressChart';
@@ -370,7 +369,6 @@ export default function DashboardPage() {
           sub="total acumulado"
           color="blue"
         />
-        <Countdown examDate={stats?.plan?.examDate} examName={stats?.plan?.examName} />
 
       </div>
 
@@ -385,7 +383,7 @@ export default function DashboardPage() {
           <div className="glass rounded-sm p-6">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Progresso Geral</p>
-              <span className="text-lg font-bold gradient-text">{stats?.overallProgress ?? 0}%</span>
+              <span className="text-lg font-bold text-primary">{stats?.overallProgress ?? 0}%</span>
             </div>
             <Progress value={stats?.overallProgress ?? 0} className="h-3" />
             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
