@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Calendar,
+  Circle,
   Clock3,
   Loader2,
   Pause,
@@ -13,6 +14,7 @@ import {
   HelpCircle,
   Video,
   RotateCcw,
+  InfoIcon,
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { usePlanContext } from '@/contexts/PlanContext';
@@ -30,7 +32,7 @@ import {
 } from '@/lib/firestore';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { cn } from '@/lib/utils';
-import type { StudyPlan, StudySession, Subject, Topic } from '@/types';
+import type { StudyPlan, StudySession, Subject, Topic, TopicProgress } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -50,6 +52,8 @@ import {
 } from '@/components/ui/select';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Checkbox } from '../ui/checkbox';
 
 export default function StudySessionFloatingButton() {
   const { user } = useAuthContext();
@@ -61,6 +65,7 @@ export default function StudySessionFloatingButton() {
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [timerReviewMode, setTimerReviewMode] = useState(false);
   const speedDialRef = useRef<HTMLDivElement>(null);
 
   // Dados carregados
@@ -87,7 +92,8 @@ export default function StudySessionFloatingButton() {
   const [material, setMaterial] = useState('Aula 01');
   const [theoryFinished, setTheoryFinished] = useState(true);
   const [programRevisions, setProgramRevisions] = useState(true);
-  const [revisions, setRevisions] = useState(['1d', '7d', '30d', '60d', '120d', '245d']);
+  const [revisions] = useState(['1d', '7d', '30d', '60d', '120d', '245d']);
+  const [disabledRevisions, setDisabledRevisions] = useState<Set<string>>(new Set());
 
   const [correctQuestions, setCorrectQuestions] = useState(0);
   const [wrongQuestions, setWrongQuestions] = useState(0);
@@ -242,6 +248,20 @@ export default function StudySessionFloatingButton() {
   const handleCancel = () => {
     reset();
     setSessionStart(null);
+    setTimerReviewMode(false);
+  };
+
+  // Converte segundos decorridos em HH:MM e abre o modal para revisão
+  const handleStopTimer = () => {
+    pause();
+    const totalSecs = elapsedSeconds;
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const hh = String(h).padStart(2, '0');
+    const mm = String(m).padStart(2, '0');
+    setManualDuration(`${hh}:${mm}`);
+    setTimerReviewMode(true);
+    setOpen(true);
   };
 
   const getResolvedDate = () => {
@@ -271,7 +291,7 @@ export default function StudySessionFloatingButton() {
       const now = new Date().toISOString();
       const [manualHours, manualMinutes] = manualDuration.split(':').map(Number);
       const manualDurationMinutes = (manualHours || 0) * 60 + (manualMinutes || 0);
-      const durationMinutes = sessionStart
+      const durationMinutes = (sessionStart && !timerReviewMode)
         ? Math.max(1, minutes || Math.ceil(elapsedSeconds / 60))
         : Math.max(1, manualDurationMinutes);
 
@@ -338,6 +358,32 @@ export default function StudySessionFloatingButton() {
           };
         }
         await updateTopic(selectedPlanId, selectedSubjectId, selectedTopic.id, { progress: updatedProgress });
+      } else if (!theoryFinished && selectedTopic) {
+        // Mesmo sem finalizar a teoria, marca os itens estudados como "em andamento"
+        // (apenas se ainda estiverem "não iniciados", para não rebaixar um "concluído")
+        const categoryToProgressKey: Partial<Record<keyof typeof activeCategories, keyof TopicProgress>> = {
+          videoaulas: 'video',
+          paginas: 'pdf',
+          questoes: 'questions',
+          revisoes: 'revision',
+        };
+
+        const updatedProgress = { ...selectedTopic.progress };
+        let needsUpdate = false;
+
+        for (const [category, progressKey] of Object.entries(categoryToProgressKey) as Array<[keyof typeof activeCategories, keyof TopicProgress]>) {
+          if (activeCategories[category] && updatedProgress[progressKey]?.status === 'not_started') {
+            updatedProgress[progressKey] = {
+              ...updatedProgress[progressKey],
+              status: 'in_progress',
+            };
+            needsUpdate = true;
+          }
+        }
+
+        if (needsUpdate) {
+          await updateTopic(selectedPlanId, selectedSubjectId, selectedTopic.id, { progress: updatedProgress });
+        }
       }
 
       if (isRevisoes && selectedTopic && selectedTopic.progress?.revision) {
@@ -352,11 +398,12 @@ export default function StudySessionFloatingButton() {
         await updateTopic(selectedPlanId, selectedSubjectId, selectedTopic.id, { progress: updatedProgress });
       }
 
-      if (programRevisions && selectedTopic && selectedSubject && revisions.length > 0) {
+      const activeRevisions = revisions.filter(r => !disabledRevisions.has(r));
+      if (programRevisions && selectedTopic && selectedSubject && activeRevisions.length > 0) {
         const sessionDateStr = resolvedDateStr.slice(0, 10);
         const sessionDate = new Date(`${sessionDateStr}T12:00:00`);
 
-        for (const rev of revisions) {
+        for (const rev of activeRevisions) {
           const days = parseInt(rev, 10);
           if (isNaN(days) || days < 1) continue;
 
@@ -392,6 +439,7 @@ export default function StudySessionFloatingButton() {
       }
       toast.success(`Sessão registrada: ${durationMinutes}min`);
       handleCancel();
+      setTimerReviewMode(false);
       setOpen(false);
     } catch (err) {
       console.error(err);
@@ -401,8 +449,13 @@ export default function StudySessionFloatingButton() {
     }
   };
 
-  const removeRevisionDay = (day: string) => {
-    setRevisions(prev => prev.filter(item => item !== day));
+  const toggleRevisionDay = (day: string) => {
+    setDisabledRevisions(prev => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
   };
 
   return (
@@ -490,12 +543,11 @@ export default function StudySessionFloatingButton() {
             </button>
 
             <button
-              onClick={handleFinish}
-              disabled={saving}
+              onClick={handleStopTimer}
               className="flex h-16 w-16 items-center justify-center rounded-sm bg-primary text-white transition hover:scale-105 hover:bg-secondary-foreground shadow-lg"
-              title="Finalizar e Salvar"
+              title="Parar e revisar sessão"
             >
-              {saving ? <Loader2 className="h-8 w-8 animate-spin" /> : <Square className="h-7 w-7 fill-white" />}
+              <Square className="h-7 w-7 fill-white" />
             </button>
 
             <button
@@ -509,64 +561,70 @@ export default function StudySessionFloatingButton() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        if (!isOpen && timerReviewMode) {
+          // Modal fechado sem salvar enquanto o cronômetro estava ativo
+          // Mantém a sessão pausada — usuário pode retomar ou cancelar pelo overlay
+          setOpen(false);
+        } else {
+          setOpen(isOpen);
+        }
+      }}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl w-[95vw] p-5 sm:p-6 bg-white rounded-sm text-gray-800">
           <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
             <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-800">
-              Registro de Estudo
+              {timerReviewMode ? 'Revisar Sessão' : 'Registro de Estudo'}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6 pt-2">
+            {/* BANNER: sessão vinda do cronômetro */}
+            {timerReviewMode && (
+              <div className="flex items-center gap-3 rounded-sm bg-primary/10 border border-primary/30 px-4 py-3">
+                <Clock3 className="h-5 w-5 text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-primary uppercase tracking-wide">Tempo cronometrado</p>
+                  <p className="text-sm font-semibold text-gray-700">{formatted} registrados — ajuste se necessário</p>
+                </div>
+              </div>
+            )}
             {/* SELEÇÃO DE DATA COM INPUT SEMPRE VISÍVEL AO LADO DE "OUTRO" */}
             <div className="flex flex-wrap items-center gap-3">
               <Calendar className="h-5 w-5 text-gray-500 hidden sm:block" />
               <div className="flex items-center gap-2 flex-wrap">
-                <button
+                <Button
                   type="button"
+                  size="sm"
+                  variant={dateOption === 'today' ? 'default' : 'outline'}
                   onClick={() => setDateOption('today')}
-                  className={cn(
-                    'px-4 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all',
-                    dateOption === 'today'
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  )}
+                  className="h-8 px-4 text-xs font-semibold uppercase tracking-wider rounded-sm"
                 >
                   Hoje
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="sm"
+                  variant={dateOption === 'yesterday' ? 'default' : 'outline'}
                   onClick={() => setDateOption('yesterday')}
-                  className={cn(
-                    'px-4 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all',
-                    dateOption === 'yesterday'
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  )}
+                  className="h-8 px-4 text-xs font-semibold uppercase tracking-wider rounded-sm"
                 >
                   Ontem
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="sm"
+                  variant={dateOption === 'other' ? 'default' : 'outline'}
                   onClick={() => setDateOption('other')}
-                  className={cn(
-                    'px-4 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all',
-                    dateOption === 'other'
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  )}
+                  className="h-8 px-4 text-xs font-semibold uppercase tracking-wider rounded-sm"
                 >
                   Outro
-                </button>
+                </Button>
                 <Input
                   type="date"
                   value={customDate}
                   onChange={e => setCustomDate(e.target.value)}
                   disabled={dateOption !== 'other'}
-                  className={cn(
-                    'w-40 h-8 text-xs',
-                    dateOption !== 'other' && 'opacity-50 cursor-not-allowed bg-gray-50'
-                  )}
+                  className={cn('w-40 h-8 text-xs', dateOption !== 'other' && 'opacity-50 cursor-not-allowed')}
                 />
               </div>
             </div>
@@ -600,18 +658,14 @@ export default function StudySessionFloatingButton() {
 
               <div className="space-y-1">
                 <Label className="text-xs font-semibold text-gray-400 uppercase">Tempo de Estudo</Label>
-                {sessionStart ? (
-                  <div className="border-b-2 border-primary py-2 font-mono text-gray-700 font-semibold">{formatted}</div>
-                ) : (
-                  <Input
-                    type="time"
-                    step="60"
-                    value={manualDuration}
-                    onChange={event => setManualDuration(event.target.value)}
-                    className="w-full"
-                    aria-label="Tempo de estudo manual"
-                  />
-                )}
+                <Input
+                  type="time"
+                  step="60"
+                  value={manualDuration}
+                  onChange={event => setManualDuration(event.target.value)}
+                  className="w-full"
+                  aria-label="Tempo de estudo manual"
+                />
               </div>
             </div>
 
@@ -658,52 +712,64 @@ export default function StudySessionFloatingButton() {
             {/* CHECKBOXES E REVISÕES */}
             <div className="space-y-4 pt-2">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-600 uppercase">
-                  <input
-                    type="checkbox"
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="theory-finished"
                     checked={theoryFinished}
-                    onChange={e => {
-                      const checked = e.target.checked;
-                      setTheoryFinished(checked);
+                    onCheckedChange={(checked) => {
+                      setTheoryFinished(!!checked);
                       if (checked) {
                         setActiveCategories(prev => ({ ...prev, videoaulas: true, paginas: true }));
                       }
                     }}
-                    className="rounded border-primary text-primary focus:ring-primary h-4 w-4"
                   />
-                  Teoria Finalizada
-                </label>
+                  <Label htmlFor="theory-finished" className="cursor-pointer text-xs font-bold text-gray-600 uppercase">
+                    Teoria Finalizada
+                  </Label>
+                </div>
 
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-600 uppercase">
-                  <input
-                    type="checkbox"
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="program-revisions"
                     checked={programRevisions}
-                    onChange={e => setProgramRevisions(e.target.checked)}
-                    className="rounded border-primary text-primary focus:ring-primary h-4 w-4"
+                    onCheckedChange={(checked) => {
+                      const isChecked = !!checked;
+                      setProgramRevisions(isChecked);
+                      // Marcar → todas ativas (X); Desmarcar → todas desativadas (○)
+                      setDisabledRevisions(isChecked ? new Set() : new Set(revisions));
+                    }}
                   />
-                  Programar Revisões
-                </label>
+                  <Label htmlFor="program-revisions" className="cursor-pointer text-xs font-bold text-gray-600 uppercase">
+                    Programar Revisões
+                  </Label>
+                </div>
               </div>
 
-              {programRevisions && (
-                <div className="flex flex-wrap gap-2 items-center pt-1">
-                  {revisions.map(day => (
-                    <span
+              <div className="flex flex-wrap gap-2 items-center pt-1">
+                {revisions.map(day => {
+                  const isDisabled = disabledRevisions.has(day);
+                  return (
+                    <button
                       key={day}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-sm text-xs font-medium"
+                      type="button"
+                      onClick={() => toggleRevisionDay(day)}
+                      aria-label={isDisabled ? `Ativar revisão de ${day}` : `Desativar revisão de ${day}`}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-medium transition-all',
+                        isDisabled
+                          ? 'bg-muted text-muted-foreground line-through'
+                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      )}
                     >
                       {day}
-                      <button
-                        type="button"
-                        onClick={() => removeRevisionDay(day)}
-                        className="hover:text-blue-900"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
+                      {isDisabled
+                        ? <Circle className="h-3 w-3" />
+                        : <X className="h-3 w-3" />
+                      }
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* CAMPOS DINÂMICOS BASEADOS NA CATEGORIA SELECIONADA */}
@@ -716,36 +782,38 @@ export default function StudySessionFloatingButton() {
                     <Video className="h-4 w-4 text-primary" />
                     <span>Videoaulas (Título / Minutagem)</span>
                   </div>
-                  <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
-                    <div className="w-full sm:w-1/2 space-y-1">
-                      <Label className="text-[10px] uppercase text-gray-500 font-semibold">Título do Vídeo</Label>
-                      <input
+                  <div className="flex flex-col sm:flex-row justify-center items-end gap-3">
+                    <div className="w-full sm:w-1/2 space-y-1.5">
+                      <Label htmlFor="video-title" className="text-xs uppercase text-muted-foreground font-semibold">Título do Vídeo</Label>
+                      <Input
+                        id="video-title"
                         type="text"
                         value={videoTitle}
                         onChange={event => setVideoTitle(event.target.value)}
-                        className="w-full border-b-2 border-primary bg-transparent text-sm font-bold outline-none py-1"
                       />
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-1/2 justify-center pt-2 sm:pt-0">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] uppercase text-gray-500 font-semibold">Início</span>
-                        <input
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 w-full sm:w-1/2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="video-start" className="text-xs uppercase text-muted-foreground font-semibold">Início</Label>
+                        <Input
+                          id="video-start"
                           type="time"
                           step="1"
                           value={videoStartTime}
                           onChange={event => setVideoStartTime(event.target.value)}
-                          className="w-24 border-b-2 border-primary bg-transparent text-center font-mono text-xs font-bold outline-none py-1"
+                          className="font-mono text-center"
                         />
                       </div>
-                      <span className="text-gray-400 font-light pt-3">–</span>
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] uppercase text-gray-500 font-semibold">Fim</span>
-                        <input
+                      <span className="text-muted-foreground font-light pb-2">–</span>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="video-end" className="text-xs uppercase text-muted-foreground font-semibold">Fim</Label>
+                        <Input
+                          id="video-end"
                           type="time"
                           step="1"
                           value={videoEndTime}
                           onChange={event => setVideoEndTime(event.target.value)}
-                          className="w-24 border-b-2 border-primary bg-transparent text-center font-mono text-xs font-bold outline-none py-1"
+                          className="font-mono text-center"
                         />
                       </div>
                     </div>
@@ -759,26 +827,28 @@ export default function StudySessionFloatingButton() {
                     <BookOpen className="h-4 w-4 text-primary" />
                     <span>Páginas Lidas (Início / Fim)</span>
                   </div>
-                  <div className="flex justify-center items-center gap-3">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[10px] uppercase text-gray-500 font-semibold">Pág. Inicial</span>
-                      <input
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="start-page" className="text-xs uppercase text-muted-foreground font-semibold">Pág. Inicial</Label>
+                      <Input
+                        id="start-page"
                         type="number"
                         min={0}
                         value={startPage}
                         onChange={e => setStartPage(Number(e.target.value))}
-                        className="w-20 text-center border-b-2 border-primary bg-transparent text-base font-bold outline-none"
+                        className="text-center font-bold text-base"
                       />
                     </div>
-                    <span className="text-gray-400 text-xl font-light pt-3">–</span>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[10px] uppercase text-gray-500 font-semibold">Pág. Final</span>
-                      <input
+                    <span className="text-muted-foreground text-xl font-light pb-2">–</span>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="end-page" className="text-xs uppercase text-muted-foreground font-semibold">Pág. Final</Label>
+                      <Input
+                        id="end-page"
                         type="number"
                         min={0}
                         value={endPage}
                         onChange={e => setEndPage(Number(e.target.value))}
-                        className="w-20 text-center border-b-2 border-primary bg-transparent text-base font-bold outline-none"
+                        className="text-center font-bold text-base"
                       />
                     </div>
                   </div>
@@ -791,26 +861,32 @@ export default function StudySessionFloatingButton() {
                     <HelpCircle className="h-4 w-4 text-primary" />
                     <span>Questões (Acertos / Erros)</span>
                   </div>
-                  <div className="flex justify-center items-center gap-3">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[10px] uppercase text-green-600 font-semibold">Acertos</span>
-                      <input
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="correct-questions" className="text-xs font-semibold uppercase text-green-600">
+                        Acertos
+                      </Label>
+                      <Input
+                        id="correct-questions"
                         type="number"
                         min={0}
                         value={correctQuestions}
                         onChange={e => setCorrectQuestions(Number(e.target.value))}
-                        className="w-20 text-center border-b-2 border-green-500 bg-transparent text-base font-bold outline-none"
+                        className="text-center font-bold text-base focus-visible:ring-green-500 border-green-400"
                       />
                     </div>
-                    <span className="text-gray-400 text-xl font-light pt-3">/</span>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[10px] uppercase text-red-500 font-semibold">Erros</span>
-                      <input
+                    <span className="text-gray-400 text-xl font-light pb-2">/</span>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="wrong-questions" className="text-xs font-semibold uppercase text-red-500">
+                        Erros
+                      </Label>
+                      <Input
+                        id="wrong-questions"
                         type="number"
                         min={0}
                         value={wrongQuestions}
                         onChange={e => setWrongQuestions(Number(e.target.value))}
-                        className="w-20 text-center border-b-2 border-red-400 bg-transparent text-base font-bold outline-none"
+                        className="text-center font-bold text-base focus-visible:ring-red-400 border-red-400"
                       />
                     </div>
                   </div>
@@ -818,15 +894,13 @@ export default function StudySessionFloatingButton() {
               )}
 
               {isRevisoes && (
-                <div className="border-2 border-primary/20 rounded-sm bg-blue-50/10 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-gray-700">
-                    <RotateCcw className="h-4 w-4 text-primary" />
-                    <span>Revisões Realizadas</span>
-                  </div>
-                  <div className="text-center text-xs text-muted-foreground py-2">
+                <Alert>
+                  <InfoIcon className="h-4 w-4" />
+                  <AlertTitle>Sessão de Revisão</AlertTitle>
+                  <AlertDescription>
                     Esta sessão será registrada e contabilizada como estudo de Revisão.
-                  </div>
-                </div>
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
 
@@ -843,14 +917,27 @@ export default function StudySessionFloatingButton() {
 
             {/* BOTÕES DE AÇÃO */}
             <div className="flex flex-col-reverse sm:flex-row items-center justify-between pt-4 border-t gap-4">
-              <button
-                type="button"
-                onClick={handleStart}
-                className="flex w-full sm:w-auto items-center justify-center gap-2 text-secondary-foreground font-semibold hover:text-blue-700 text-sm py-2 sm:py-0"
-              >
-                <Play className="h-4 w-4 fill-secondary-foreground" />
-                Iniciar Cronômetro
-              </button>
+              {!timerReviewMode ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleStart}
+                  className="w-full sm:w-auto gap-2 text-secondary-foreground font-semibold hover:text-blue-700"
+                >
+                  <Play className="h-4 w-4 fill-secondary-foreground" />
+                  Iniciar Cronômetro
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => { setOpen(false); start(); }}
+                  className="w-full sm:w-auto gap-2 text-secondary-foreground font-semibold hover:text-blue-700"
+                >
+                  <Play className="h-4 w-4 fill-secondary-foreground" />
+                  Retomar Cronômetro
+                </Button>
+              )}
 
               <div className="flex w-full sm:w-auto items-center gap-3">
                 <Button

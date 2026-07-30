@@ -13,8 +13,58 @@ import {
 import { Button } from '@/components/ui/button';
 import { usePlanContext } from '@/contexts/PlanContext';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../ui/select';
+import { useCountdown } from '@/hooks/useCountdown';
+
+function SidebarCountdown() {
+  const { selectedPlan } = usePlanContext();
+  const { countdown, isExpired } = useCountdown(selectedPlan?.examDate);
+
+  if (!selectedPlan?.examDate) return null;
+
+  if (isExpired) {
+    return (
+      <div className="rounded-sm bg-primary/10 border border-primary/20 px-3 py-2 text-center">
+        <p className="text-xs font-semibold text-primary">🎉 Prova realizada!</p>
+      </div>
+    );
+  }
+
+  const colorClass =
+    countdown.days <= 30 ? 'text-red-400' :
+    countdown.days <= 60 ? 'text-amber-400' :
+    'text-primary';
+
+  return (
+    <div className="rounded-sm bg-background/60 border border-border/50 px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        Contagem regressiva
+      </p>
+      {selectedPlan.examName && (
+        <p className="text-[11px] text-foreground/80 font-medium truncate mb-1.5" title={selectedPlan.examName}>
+          {selectedPlan.examName}
+        </p>
+      )}
+      <div className="grid grid-cols-4 gap-1">
+        {[
+          { value: countdown.days, label: 'Dias' },
+          { value: countdown.hours, label: 'Hrs' },
+          { value: countdown.minutes, label: 'Min' },
+          { value: countdown.seconds, label: 'Seg' },
+        ].map(({ value, label }) => (
+          <div key={label} className="flex flex-col items-center bg-card rounded-sm py-1.5 border border-border/40">
+            <span className={cn('text-sm font-bold font-mono tabular-nums leading-none', colorClass)}>
+              {String(value).padStart(2, '0')}
+            </span>
+            <span className="text-[9px] text-muted-foreground mt-0.5">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Sidebar() {
+
   const { user, profile, logout } = useAuthContext();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -94,25 +144,28 @@ export default function Sidebar() {
             </div>
           </div>
           {plans.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Planejamento ativo</p>
-              <Select value={selectedPlanId} onValueChange={value => value && selectPlan(value)}>
-                <SelectTrigger className="h-9 w-full text-xs">
-                  <SelectValue placeholder="Selecione um plano">
-                    {(value: string) => plans.find(p => p.id === value)?.name ?? "Selecione um plano"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Planos</SelectLabel>
-                    {plans.map(plan => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+            <div className="mt-4 space-y-3">
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Planejamento ativo</p>
+                <Select value={selectedPlanId} onValueChange={value => value && selectPlan(value)}>
+                  <SelectTrigger className="h-9 w-full text-xs">
+                    <SelectValue placeholder="Selecione um plano">
+                      {(value: string) => plans.find(p => p.id === value)?.name ?? "Selecione um plano"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Planos</SelectLabel>
+                      {plans.map(plan => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <SidebarCountdown />
             </div>
           )}
         </div>

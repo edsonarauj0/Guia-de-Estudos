@@ -226,13 +226,17 @@ export default function DashboardPage() {
         <div className="relative h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={planned} dataKey="value" nameKey="name" innerRadius="66%" outerRadius="82%" paddingAngle={2}>
+              <Pie data={planned} dataKey="value" innerRadius="66%" outerRadius="82%" paddingAngle={2}>
                 {planned.map((item, index) => <Cell key={`${item.name}-${index}`} fill={item.color} fillOpacity={0.25} />)}
               </Pie>
-              <Pie data={actual} dataKey="value" nameKey="name" innerRadius="43%" outerRadius="62%" paddingAngle={2}>
+              <Pie data={actual} dataKey="value" innerRadius="43%" outerRadius="62%" paddingAngle={2}>
                 {actual.map((item, index) => <Cell key={`${item.name}-${index}`} fill={item.color} />)}
               </Pie>
-              <Tooltip formatter={value => formatDuration(Number(value ?? 0))} />
+              <Tooltip
+                formatter={value => formatDuration(Number(value ?? 0))}
+                position={{ x: 0, y: -10 }}
+                wrapperStyle={{ zIndex: 50 }}
+              />
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -240,6 +244,19 @@ export default function DashboardPage() {
             <span className="text-xs text-muted-foreground">de {formatDuration(totalPlanned)}</span>
           </div>
         </div>
+        {/* Legenda customizada abaixo do gráfico */}
+        {planned.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2">
+            {planned.map((item, index) => (
+              <div key={index} className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                <span className="text-[10px] text-muted-foreground truncate max-w-[100px]" title={item.name}>
+                  {item.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -353,13 +370,14 @@ export default function DashboardPage() {
           sub="total acumulado"
           color="blue"
         />
+        <Countdown examDate={stats?.plan?.examDate} examName={stats?.plan?.examName} />
+
       </div>
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column */}
         <div className="space-y-6">
-          <Countdown examDate={stats?.plan?.examDate} examName={stats?.plan?.examName} />
           <CycleCard activeCycle={activeCycle} chartData={cycleChartData} />
           <CycleSequenceTable items={cycleChartData.items} />
 
