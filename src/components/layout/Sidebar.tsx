@@ -12,8 +12,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlanContext } from '@/contexts/PlanContext';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../ui/select';
 import { useCountdown } from '@/hooks/useCountdown';
+import { PlanSwitcher } from './plans-switcher';
 
 function SidebarCountdown() {
   const { selectedPlan } = usePlanContext();
@@ -31,8 +31,8 @@ function SidebarCountdown() {
 
   const colorClass =
     countdown.days <= 30 ? 'text-red-400' :
-    countdown.days <= 60 ? 'text-amber-400' :
-    'text-primary';
+      countdown.days <= 60 ? 'text-amber-400' :
+        'text-primary';
 
   return (
     <div className="rounded-sm bg-background/60 border border-border/50 px-3 py-2.5">
@@ -64,7 +64,6 @@ function SidebarCountdown() {
 }
 
 export default function Sidebar() {
-
   const { user, profile, logout } = useAuthContext();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -132,39 +131,14 @@ export default function Sidebar() {
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Logo */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-sm bg-primary/15 border border-primary/30 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="font-bold text-sm text-foreground">Guia de Estudo</h1>
-              <p className="text-xs text-muted-foreground">Tracker de Concursos</p>
-            </div>
+        {/* Logo e PlanSwitcher */}
+        <div>
+          <div className="m-2">
+            <PlanSwitcher />
           </div>
+
           {plans.length > 0 && (
             <div className="mt-4 space-y-3">
-              <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Planejamento ativo</p>
-                <Select value={selectedPlanId} onValueChange={value => value && selectPlan(value)}>
-                  <SelectTrigger className="h-9 w-full text-xs">
-                    <SelectValue placeholder="Selecione um plano">
-                      {(value: string) => plans.find(p => p.id === value)?.name ?? "Selecione um plano"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Planos</SelectLabel>
-                      {plans.map(plan => (
-                        <SelectItem key={plan.id} value={plan.id}>
-                          {plan.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
               <SidebarCountdown />
             </div>
           )}
@@ -195,8 +169,6 @@ export default function Sidebar() {
 
         {/* User footer */}
         <div className="p-4 border-t border-border">
-          {/* Removed examName rendering since it's now per-plan */}
-
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-sm bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
               {profile?.displayName?.[0]?.toUpperCase() ?? 'U'}
@@ -231,7 +203,6 @@ export default function Sidebar() {
               </div>
               <span>{theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}</span>
             </div>
-            {/* Toggle pill */}
             <div className={cn(
               'relative w-10 h-5 rounded-sm border transition-all duration-300 flex-shrink-0',
               theme === 'dark'

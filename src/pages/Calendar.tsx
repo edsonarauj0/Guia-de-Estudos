@@ -422,7 +422,7 @@ function CycleTimeline({ summaries, examDate, subjectColors }: { summaries: Cycl
         </div>
       </div>
 
-      <div className="rounded-md border bg-background/50">
+      <div className="rounded-sm border bg-background/50">
         <Table>
           <TableHeader>
             <TableRow>
@@ -800,7 +800,7 @@ export default function CalendarPage() {
             </Button>
           </div>
 
-          <div className="flex bg-muted p-1 rounded-md max-w-fit self-end sm:self-auto">
+          <div className="flex bg-muted p-1 rounded-sm max-w-fit self-end sm:self-auto">
             <button
               onClick={() => setViewMode('week')}
               className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${

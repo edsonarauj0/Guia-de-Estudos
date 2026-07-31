@@ -91,21 +91,21 @@ export default function SettingsPage() {
             <TabsList className="flex flex-col w-full h-auto bg-transparent p-0 space-y-1">
               <TabsTrigger 
                 value="profile" 
-                className="w-full justify-start gap-3 px-3 py-2.5 text-sm font-medium rounded-lg text-muted-foreground hover:bg-muted/50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none transition-colors"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm font-medium rounded-sm text-muted-foreground hover:bg-muted/50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none transition-colors"
               >
                 <User className="w-4 h-4" /> 
                 <span>Perfil</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="preferences" 
-                className="w-full justify-start gap-3 px-3 py-2.5 text-sm font-medium rounded-lg text-muted-foreground hover:bg-muted/50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none transition-colors"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm font-medium rounded-sm text-muted-foreground hover:bg-muted/50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none transition-colors"
               >
                 <Palette className="w-4 h-4" /> 
                 <span>Preferências</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="plans" 
-                className="w-full justify-start gap-3 px-3 py-2.5 text-sm font-medium rounded-lg text-muted-foreground hover:bg-muted/50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none transition-colors"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm font-medium rounded-sm text-muted-foreground hover:bg-muted/50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none transition-colors"
               >
                 <FolderOpen className="w-4 h-4" /> 
                 <span>Planos</span>
@@ -250,7 +250,7 @@ export default function SettingsPage() {
                     <CardContent className="space-y-4 pt-0">
                       <div className="flex items-center justify-between mb-2 border-t border-border pt-4">
                         <h4 className="font-semibold text-foreground">Horas de Estudo</h4>
-                        <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-md">
+                        <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-sm">
                           {totalHours}h/semana
                         </span>
                       </div>
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                                 step="0.5"
                                 value={plan.dailyGoalHours?.[key] || 0}
                                 onChange={e => handleUpdatePlanHours(plan.id, key, e.target.value)}
-                                className="flex-1 h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                className="flex-1 h-2 bg-muted rounded-sm appearance-none cursor-pointer accent-primary"
                               />
                               <div className="relative">
                                 <Input
