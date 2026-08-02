@@ -217,17 +217,7 @@ export default function SessionsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Select value={periodFilter} onValueChange={value => setPeriodFilter((value ?? 'all') as typeof periodFilter)}>
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="Período">
-                {(value: string) => {
-                  const labels: Record<string, string> = {
-                    all: 'Todo período',
-                    '7': 'Últimos 7 dias',
-                    '30': 'Últimos 30 dias',
-                    '90': 'Últimos 90 dias',
-                  }
-                  return labels[value] ?? 'Período'
-                }}
-              </SelectValue>
+              <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todo período</SelectItem>
@@ -239,13 +229,7 @@ export default function SessionsPage() {
 
           <Select value={typeFilter} onValueChange={value => setTypeFilter(value ?? 'all')}>
             <SelectTrigger className="w-44">
-              <SelectValue placeholder="Categoria">
-                {(value: string) =>
-                  value === 'all'
-                    ? 'Todas categorias'
-                    : SESSION_TYPES.find(t => t.value === value)?.label ?? 'Categoria'
-                }
-              </SelectValue>
+              <SelectValue placeholder="Categoria" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas categorias</SelectItem>
@@ -361,7 +345,7 @@ export default function SessionsPage() {
                               {format(new Date(act.timestamp), 'HH:mm')}
                             </p>
                           </div>
-                          
+
                           {/* Botões de Ação por Linha */}
                           <div className="flex items-center gap-1">
                             {act.originalSession && (

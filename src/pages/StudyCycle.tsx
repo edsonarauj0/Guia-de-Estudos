@@ -214,7 +214,7 @@ export default function StudyCyclePage() {
         <Select value={selectedCycleKey} onValueChange={value => value && setSelectedCycleKey(value)}>
           <SelectTrigger className="h-2 w-full text-xs">
             <SelectValue placeholder="Selecione um plano">
-              {(value: string) => projectedCycles.find(p => String(p.cycleNumber) === value)?.cycleName ?? "Selecione um ciclo"}
+              {projectedCycles.find(p => String(p.cycleNumber) === selectedCycleKey)?.cycleName ?? "Selecione um ciclo"}
             </SelectValue>
           </SelectTrigger>
           <SelectContent className="max-h-40 overflow-y-auto">

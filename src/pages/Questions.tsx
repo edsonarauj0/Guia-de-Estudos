@@ -237,7 +237,7 @@ export default function Questions() {
 
         <div className="flex items-center gap-4 w-full md:w-auto">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger render={<Button className="gap-2 transition-all" />}>
+            <DialogTrigger asChild>
               <Plus className="w-4 h-4" />
               Registrar
             </DialogTrigger>

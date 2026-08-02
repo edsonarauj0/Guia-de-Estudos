@@ -34,18 +34,18 @@ export default function PlannerPage() {
     try {
       const availablePlans = await getStudyPlans(user.uid);
       setPlans(availablePlans);
-      
+
       let targetPlanId = planIdOverride || globalPlanId;
       if (!targetPlanId && availablePlans.length > 0) {
         targetPlanId = availablePlans[0].id;
         selectPlan(targetPlanId);
       }
-      
+
       if (!targetPlanId) {
         setLoading(false);
         return;
       }
-      
+
       const activePlan = availablePlans.find(p => p.id === targetPlanId) || availablePlans[0];
       setActivePlanId(activePlan.id);
 
@@ -104,7 +104,6 @@ export default function PlannerPage() {
           </p>
         </div>
         <Select
-          items={plans.map(plan => ({ value: plan.id, label: plan.name }))}
           value={activePlanId ?? undefined}
           onValueChange={(value) => value && handlePlanChange(value)}
         >
