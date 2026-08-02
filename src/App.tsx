@@ -4,7 +4,6 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
-import AppLayout from '@/components/layout/AppLayout';
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
 import DashboardPage from '@/pages/Dashboard';
@@ -20,42 +19,44 @@ import StudyCyclePage from '@/pages/StudyCycle';
 import StatisticsPage from '@/pages/Statistics';
 import CalendarPage from '@/pages/Calendar';
 import { PlanProvider } from '@/contexts/PlanContext';
-
+import { AppSidebar } from './components/layout/Sidebar';
+import AppLayout from '@/components/layout/AppLayout';
 export default function App() {
+
   return (
     <ThemeProvider>
       <TooltipProvider>
         <AuthProvider>
           <PlanProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
+            <BrowserRouter>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
 
-              {/* Protected routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route element={<AppLayout />}>
-                  <Route path="/" element={<DashboardPage />} />
-                  <Route path="/subjects" element={<SubjectsPage />} />
-                  <Route path="/sessions" element={<SessionsPage />} />
-                  <Route path="/planner" element={<PlannerPage />} />
-                  <Route path="/cycle" element={<StudyCyclePage />} />
-                  <Route path="/exams" element={<ExamsPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/plans" element={<PlansPage />} />
-                  <Route path="/questions" element={<QuestionsPage />} />
-                  <Route path="/reviews" element={<ReviewsPage />} />
-                  <Route path="/statistics" element={<StatisticsPage />} />
-                  <Route path="/calendar" element={<CalendarPage />} />
+                {/* Protected routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<AppLayout />}>
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/subjects" element={<SubjectsPage />} />
+                    <Route path="/sessions" element={<SessionsPage />} />
+                    <Route path="/planner" element={<PlannerPage />} />
+                    <Route path="/cycle" element={<StudyCyclePage />} />
+                    <Route path="/exams" element={<ExamsPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/plans" element={<PlansPage />} />
+                    <Route path="/questions" element={<QuestionsPage />} />
+                    <Route path="/reviews" element={<ReviewsPage />} />
+                    <Route path="/statistics" element={<StatisticsPage />} />
+                    <Route path="/calendar" element={<CalendarPage />} />
+                  </Route>
                 </Route>
-              </Route>
 
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <Toaster richColors position="top-right" />
-          </BrowserRouter>
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+              <Toaster richColors position="top-right" />
+            </BrowserRouter>
           </PlanProvider>
         </AuthProvider>
       </TooltipProvider>

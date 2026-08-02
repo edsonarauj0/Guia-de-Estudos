@@ -1,4 +1,4 @@
-import { addDays, format, startOfDay } from "date-fns";
+import { addDays, format, parseISO, startOfDay } from "date-fns";
 import type { StudyCycle, StudyCycleItem, StudyPlan, StudySession, Subject, Topic, WeeklyGoal } from "@/types";
 import { getDayOfWeek } from "./helpers";
 
@@ -92,19 +92,19 @@ export function buildCalendarPlan(params: {
   const todayStr = format(startOfDay(new Date()), "yyyy-MM-dd");
   const examDateStr = plan.examDate ? plan.examDate.slice(0, 10) : null;
   const weeklyGoal: WeeklyGoal = {
-    monday:    plan.dailyGoalHours?.monday    ?? DEFAULT_WEEKLY_GOAL.monday,
-    tuesday:   plan.dailyGoalHours?.tuesday   ?? DEFAULT_WEEKLY_GOAL.tuesday,
+    monday: plan.dailyGoalHours?.monday ?? DEFAULT_WEEKLY_GOAL.monday,
+    tuesday: plan.dailyGoalHours?.tuesday ?? DEFAULT_WEEKLY_GOAL.tuesday,
     wednesday: plan.dailyGoalHours?.wednesday ?? DEFAULT_WEEKLY_GOAL.wednesday,
-    thursday:  plan.dailyGoalHours?.thursday  ?? DEFAULT_WEEKLY_GOAL.thursday,
-    friday:    plan.dailyGoalHours?.friday    ?? DEFAULT_WEEKLY_GOAL.friday,
-    saturday:  plan.dailyGoalHours?.saturday  ?? DEFAULT_WEEKLY_GOAL.saturday,
-    sunday:    plan.dailyGoalHours?.sunday    ?? DEFAULT_WEEKLY_GOAL.sunday,
+    thursday: plan.dailyGoalHours?.thursday ?? DEFAULT_WEEKLY_GOAL.thursday,
+    friday: plan.dailyGoalHours?.friday ?? DEFAULT_WEEKLY_GOAL.friday,
+    saturday: plan.dailyGoalHours?.saturday ?? DEFAULT_WEEKLY_GOAL.saturday,
+    sunday: plan.dailyGoalHours?.sunday ?? DEFAULT_WEEKLY_GOAL.sunday,
   };
 
   const historicalMap = new Map<string, number>();
   for (const s of sessions) {
-    const d = s.startedAt.slice(0, 10);
-    historicalMap.set(d, (historicalMap.get(d) ?? 0) + s.durationMinutes);
+    const localDateStr = format(parseISO(s.startedAt), "yyyy-MM-dd");
+    historicalMap.set(localDateStr, (historicalMap.get(localDateStr) ?? 0) + s.durationMinutes);
   }
 
   const mapStart = addDays(startOfDay(new Date()), -60);
@@ -153,18 +153,38 @@ export function buildCalendarPlan(params: {
 
     if (activeCycle) {
       activeCycle.items.forEach(item => studiedByItem.set(item.id, 0));
+
       const relevantSessions = sessions.filter(session =>
         session.cycleId === activeCycle.id ||
         (!session.cycleId && new Date(session.startedAt) >= new Date(activeCycle.createdAt))
       );
+
       for (const session of relevantSessions) {
         const exactItem = activeCycle.items.find(item => item.topicId === session.topicId);
         const subjectItems = activeCycle.items.filter(item => item.subjectId === session.subjectId);
         const targetItem = exactItem
           ?? subjectItems.find(item => (studiedByItem.get(item.id) ?? 0) < item.plannedMinutes)
           ?? subjectItems[0];
+
         if (targetItem) {
           studiedByItem.set(targetItem.id, (studiedByItem.get(targetItem.id) ?? 0) + session.durationMinutes);
+
+          const sessionDateStr = format(parseISO(session.startedAt), "yyyy-MM-dd");
+          const targetDay = days.get(sessionDateStr);
+
+          if (targetDay && targetDay.isPast) {
+            targetDay.plannedSlots.push({
+              cycleNumber: activeCycle.cycleNumber ?? 1,
+              cycleId: activeCycle.id,
+              cycleName: activeCycle.name,
+              subjectId: targetItem.subjectId,
+              subjectName: targetItem.subjectName,
+              subjectColor: targetItem.subjectColor,
+              topicId: targetItem.topicId,
+              topicName: targetItem.topicName,
+              minutes: session.durationMinutes,
+            });
+          }
         }
       }
     }
@@ -172,7 +192,7 @@ export function buildCalendarPlan(params: {
     for (const cycle of sortedCycles) {
       const cn = cycle.cycleNumber ?? 1;
       if (cn > maxBaseCycleNum_ref.val) maxBaseCycleNum_ref.val = cn;
-      
+
       const isActive = cycle.status === 'active';
 
       for (const item of cycle.items) {
@@ -218,15 +238,18 @@ export function buildCalendarPlan(params: {
   }
 
   if (baseItems.length === 0) {
-    return { days, cycleSummaries: [], examDate: examDateStr ?? undefined };
+    return {
+      days,
+      cycleSummaries: [],
+      examDate: examDateStr ?? undefined,
+      studyEndsDate: undefined,
+    };
   }
 
-  const maxBaseCycleNum = maxBaseCycleNum_ref.val;
   const cycleSummaries: CycleSummary[] = [];
   const MAX_ROUNDS = 60;
 
   let dayIdx = 0;
-  let cycleOffset = 0;
   let round = 0;
   let globalSequenceNumber = 1;
 
@@ -254,7 +277,7 @@ export function buildCalendarPlan(params: {
 
   const subjectTopicMap = new Map<string, Topic[]>();
   for (const sub of subjectsWithTopics) {
-    subjectTopicMap.set(sub.id, [...sub.topics].sort((a,b) => (a.order ?? 0) - (b.order ?? 0)));
+    subjectTopicMap.set(sub.id, [...sub.topics].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
   }
   const currentTopicIndex = new Map<string, number>();
 
@@ -267,9 +290,9 @@ export function buildCalendarPlan(params: {
       const activeCs = getOrCreateSummary(base.baseCycleNumber, base.baseCycleName, base.cycleId, round);
       const actualCycleNum = activeCs.cycleNumber;
 
-      let left = round === 0 && base.remainingMinutesRound0 !== undefined 
-                 ? base.remainingMinutesRound0 
-                 : base.plannedMinutes;
+      let left = round === 0 && base.remainingMinutesRound0 !== undefined
+        ? base.remainingMinutesRound0
+        : base.plannedMinutes;
 
       if (left <= 0) continue;
 
@@ -288,12 +311,13 @@ export function buildCalendarPlan(params: {
       let slotTopicId = base.topicId;
       let slotTopicName = base.topicName;
       const topics = subjectTopicMap.get(base.subjectId) || [];
-      
+
+      // Mantém o tópico fixo caso ele venha do saldo pendente do ciclo anterior (Round 0)
       if (round > 0 && topics.length > 0) {
         let tIdx = currentTopicIndex.get(base.subjectId);
         if (tIdx === undefined) {
-           const idx = topics.findIndex(t => t.id === base.topicId);
-           tIdx = idx >= 0 ? idx + 1 : 0;
+          const idx = topics.findIndex(t => t.id === base.topicId);
+          tIdx = idx >= 0 ? idx + 1 : 0;
         }
         const topic = topics[tIdx % topics.length];
         slotTopicId = topic.id;
@@ -301,7 +325,6 @@ export function buildCalendarPlan(params: {
         currentTopicIndex.set(base.subjectId, tIdx + 1);
       }
 
-      // Adiciona o item à lista de itens do resumo do ciclo
       const cycleItem: StudyCycleItem = {
         id: `${base.subjectId}:${slotTopicId || 'no-topic'}`,
         subjectId: base.subjectId,
@@ -344,7 +367,6 @@ export function buildCalendarPlan(params: {
       }
     }
 
-    cycleOffset += maxBaseCycleNum;
     round++;
   }
 
@@ -359,5 +381,10 @@ export function buildCalendarPlan(params: {
     .sort();
   if (allSlottedDays.length > 0) studyEndsDate = allSlottedDays[allSlottedDays.length - 1];
 
-  return { days, cycleSummaries, examDate: examDateStr ?? undefined, studyEndsDate };
+  return {
+    days,
+    cycleSummaries,
+    examDate: examDateStr ?? undefined,
+    studyEndsDate,
+  };
 }
