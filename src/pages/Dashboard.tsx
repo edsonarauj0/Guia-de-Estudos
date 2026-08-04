@@ -4,6 +4,7 @@ import { usePlanContext } from '@/contexts/PlanContext';
 import { getSubjects, getTopics, getSessions, getQuestionLogs, getReviewCards, getStudyCycles, getStudyPlans } from '@/lib/firestore';
 import { calculatePlannerStats, calcTodayHours, calcStreak } from '@/lib/plannerEngine';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
+import TodayStudyBanner from '@/components/dashboard/TodayStudyBanner';
 import StudyConsistencyCard from '@/components/dashboard/StudyConsistencyCard';
 import SubjectProgressChart from '@/components/dashboard/SubjectProgressChart';
 import { Progress } from '@/components/ui/progress';
@@ -297,6 +298,13 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Today study banner */}
+      <TodayStudyBanner
+        activeCycle={activeCycle}
+        todayStudiedHours={todayStudiedHours}
+        todayGoalHours={todayGoalHours}
+      />
 
       {/* Setup banner if no exam date */}
       {!stats?.plan?.examDate && (

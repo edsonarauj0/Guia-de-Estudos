@@ -8,6 +8,7 @@ import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
 import DashboardPage from '@/pages/Dashboard';
 import SubjectsPage from '@/pages/Subjects';
+import SubjectDetailPage from '@/pages/SubjectDetail';
 import SessionsPage from '@/pages/Sessions';
 import PlannerPage from '@/pages/Planner';
 import ExamsPage from '@/pages/Exams';
@@ -39,6 +40,7 @@ export default function App() {
                   <Route element={<AppLayout />}>
                     <Route path="/" element={<DashboardPage />} />
                     <Route path="/subjects" element={<SubjectsPage />} />
+                    <Route path="/subjects/:subjectId" element={<SubjectDetailPage />} />
                     <Route path="/sessions" element={<SessionsPage />} />
                     <Route path="/planner" element={<PlannerPage />} />
                     <Route path="/cycle" element={<StudyCyclePage />} />

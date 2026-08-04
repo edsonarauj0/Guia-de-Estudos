@@ -8,7 +8,6 @@ import {
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -22,6 +21,7 @@ import { useAuthContext } from "@/contexts/AuthContext"
 import { usePlanContext } from "@/contexts/PlanContext"
 import { getReviewCards, getSubjects } from "@/lib/firestore"
 import { isDueToday } from "@/lib/sm2"
+import { NavMaterias } from "./nav-projects"
 
 function formatSubjectName(name: string) {
   if (!name) return name;
@@ -30,9 +30,9 @@ function formatSubjectName(name: string) {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthContext();
-  const { plans, selectedPlanId } = usePlanContext();
+  const { selectedPlanId } = usePlanContext();
   const [reviewCount, setReviewCount] = React.useState(0);
-  const [subjects, setSubjects] = React.useState<{ id: string; name: string }[]>([]);
+  const [subjects, setSubjects] = React.useState<{ id: string; name: string; color: string }[]>([]);
 
   React.useEffect(() => {
     if (!user) return;
@@ -59,6 +59,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         console.error('Failed to load subjects', err);
       }
     })();
+  }, [selectedPlanId]);
+
+  const handleDeleteSubject = React.useCallback(async (subjectId: string, subjectName: string) => {
+    if (!selectedPlanId) return;
+    const confirmed = window.confirm(`Excluir "${subjectName}" e todos os seus tópicos? Esta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+    try {
+      const { deleteSubject } = await import('@/lib/firestore');
+      await deleteSubject(selectedPlanId, subjectId);
+      setSubjects(prev => prev.filter(s => s.id !== subjectId));
+    } catch (err) {
+      console.error('Erro ao excluir matéria', err);
+    }
   }, [selectedPlanId]);
 
   const NAV_MAIN = [
@@ -105,9 +118,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   ];
 
   const subjectProjects = subjects.map((s) => ({
+    id: s.id,
     name: formatSubjectName(s.name),
     url: `/subjects/${s.id}`,
     icon: BookOpen,
+    color: s.color,
+    onDelete: () => handleDeleteSubject(s.id, s.name),
   }));
 
   return (
@@ -118,15 +134,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={NAV_MAIN} />
         {subjectProjects.length > 0 && (
-          <NavProjects projects={subjectProjects} />
+          <NavMaterias projects={subjectProjects} />
         )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={{
-      name: user?.displayName || user?.email?.split('@')[0] || 'Usuário',
-      email: user?.email ?? user?.email ?? '',
-      avatar: user?.photoURL ?? '',
-    }} />
+          name: user?.displayName || user?.email?.split('@')[0] || 'Usuário',
+          email: user?.email ?? user?.email ?? '',
+          avatar: user?.photoURL ?? '',
+        }} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

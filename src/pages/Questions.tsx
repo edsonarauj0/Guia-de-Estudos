@@ -23,11 +23,11 @@ export default function Questions() {
   const [logs, setLogs] = useState<QuestionLog[]>([]);
   const [plans, setPlans] = useState<StudyPlan[]>([]);
   const [selectedPlanIdFilter, setSelectedPlanIdFilter] = useState<string>('all');
-  
+
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Form state
   const [formPlanId, setFormPlanId] = useState('');
   const [formSubjectId, setFormSubjectId] = useState('');
@@ -90,7 +90,7 @@ export default function Questions() {
   // --- STATS CALCULATION ---
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    
+
     let totalToday = 0;
     let correctToday = 0;
     let totalAll = 0;
@@ -118,14 +118,14 @@ export default function Questions() {
       const date = subDays(new Date(), i);
       const dateStr = format(date, 'yyyy-MM-dd');
       const dayLogs = filteredLogs.filter(l => l.date === dateStr);
-      
+
       let dayTotal = 0;
       let dayCorrect = 0;
       dayLogs.forEach(l => {
         dayTotal += l.total;
         dayCorrect += l.correct;
       });
-      
+
       data.push({
         date: format(date, 'dd/MM'),
         accuracy: dayTotal > 0 ? Math.round((dayCorrect / dayTotal) * 100) : null,
@@ -137,7 +137,7 @@ export default function Questions() {
   // --- SUBJECT PERFORMANCE ---
   const subjectStats = useMemo(() => {
     const statsMap = new Map<string, { name: string; color: string; total: number; correct: number }>();
-    
+
     filteredLogs.forEach(log => {
       const existing = statsMap.get(log.subjectId) || { name: log.subjectName, color: log.subjectColor, total: 0, correct: 0 };
       existing.total += log.total;
@@ -157,7 +157,7 @@ export default function Questions() {
 
     const t = parseInt(formTotal);
     const c = parseInt(formCorrect);
-    
+
     if (c > t) {
       toast.error('Acertos não podem ser maiores que o total de questões');
       return;
@@ -188,13 +188,13 @@ export default function Questions() {
       await createQuestionLog(logData);
       toast.success('Questões registradas com sucesso!');
       setIsDialogOpen(false);
-      
+
       // Reset form (keep plan and date to facilitate multiple entries)
       setFormSubjectId('');
       setFormTotal('');
       setFormCorrect('');
       setFormNotes('');
-      
+
       loadInitialData();
     } catch (error) {
       console.error(error);
@@ -222,7 +222,7 @@ export default function Questions() {
 
   return (
     <div className="container py-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -238,8 +238,10 @@ export default function Questions() {
         <div className="flex items-center gap-4 w-full md:w-auto">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Plus className="w-4 h-4" />
-              Registrar
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Registrar
+              </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-xl border-white/10">
               <form onSubmit={handleSubmit}>
@@ -254,11 +256,11 @@ export default function Questions() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Data</Label>
-                      <Input 
-                        type="date" 
-                        required 
-                        value={formDate} 
-                        onChange={e => setFormDate(e.target.value)} 
+                      <Input
+                        type="date"
+                        required
+                        value={formDate}
+                        onChange={e => setFormDate(e.target.value)}
                         className="bg-background/50"
                       />
                     </div>
@@ -323,23 +325,23 @@ export default function Questions() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Total de Questões</Label>
-                      <Input 
-                        type="number" 
-                        min="1" 
-                        required 
-                        value={formTotal} 
+                      <Input
+                        type="number"
+                        min="1"
+                        required
+                        value={formTotal}
                         onChange={e => setFormTotal(e.target.value)}
                         className="bg-background/50"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Acertos</Label>
-                      <Input 
-                        type="number" 
-                        min="0" 
-                        max={formTotal || "999"} 
-                        required 
-                        value={formCorrect} 
+                      <Input
+                        type="number"
+                        min="0"
+                        max={formTotal || "999"}
+                        required
+                        value={formCorrect}
                         onChange={e => setFormCorrect(e.target.value)}
                         className="bg-background/50"
                       />
@@ -357,9 +359,9 @@ export default function Questions() {
 
                   <div className="space-y-2">
                     <Label>Notas (Opcional)</Label>
-                    <Textarea 
-                      value={formNotes} 
-                      onChange={e => setFormNotes(e.target.value)} 
+                    <Textarea
+                      value={formNotes}
+                      onChange={e => setFormNotes(e.target.value)}
                       placeholder="Alguma observação importante sobre estas questões?"
                       className="resize-none h-20 bg-background/50"
                     />
@@ -367,7 +369,7 @@ export default function Questions() {
                 </div>
 
                 <DialogFooter>
-                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                  <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? 'Salvando...' : 'Salvar Registro'}
                   </Button>
@@ -389,7 +391,7 @@ export default function Questions() {
             <div className="text-3xl font-bold text-white">{stats.totalToday}</div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-br from-card to-card/50 border-white/5 ">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Acerto Hoje</CardTitle>
@@ -423,10 +425,10 @@ export default function Questions() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Left Column: Chart & Recent Logs */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           <Card className="border-white/10 bg-card/40 backdrop-blur-md ">
             <CardHeader>
               <CardTitle>Aproveitamento - Últimos 30 dias</CardTitle>
@@ -439,16 +441,16 @@ export default function Questions() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff15" vertical={false} />
                     <XAxis dataKey="date" stroke="#ffffff50" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis domain={[0, 100]} stroke="#ffffff50" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} />
-                    <RechartsTooltip 
+                    <RechartsTooltip
                       contentStyle={{ backgroundColor: '#09090b', border: '1px solid #27272a', borderRadius: '8px' }}
                       itemStyle={{ color: '#fff' }}
                       formatter={(value: any) => [`${value}%`, 'Aproveitamento']}
                     />
                     <ReferenceLine y={70} stroke="#22c55e" strokeDasharray="3 3" opacity={0.5} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="accuracy" 
-                      stroke="#8b5cf6" 
+                    <Line
+                      type="monotone"
+                      dataKey="accuracy"
+                      stroke="#8b5cf6"
                       strokeWidth={3}
                       dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 0 }}
                       activeDot={{ r: 6, fill: '#a78bfa' }}
@@ -475,8 +477,8 @@ export default function Questions() {
                     {filteredLogs.slice(0, 20).map(log => (
                       <div key={log.id} className="flex items-center justify-between p-4 rounded-sm bg-background/40 hover:bg-background/60 transition-colors border border-white/5">
                         <div className="flex items-center gap-4">
-                          <div 
-                            className="w-3 h-12 rounded-sm shrink-0" 
+                          <div
+                            className="w-3 h-12 rounded-sm shrink-0"
                             style={{ backgroundColor: log.subjectColor }}
                           />
                           <div>
@@ -502,7 +504,7 @@ export default function Questions() {
                             <div className="font-semibold text-white">
                               {log.correct} / {log.total}
                             </div>
-                            <div className={`text-sm ${((log.correct/log.total)*100) >= 70 ? 'text-green-400' : ((log.correct/log.total)*100) >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            <div className={`text-sm ${((log.correct / log.total) * 100) >= 70 ? 'text-green-400' : ((log.correct / log.total) * 100) >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
                               {((log.correct / log.total) * 100).toFixed(1)}%
                             </div>
                           </div>
@@ -517,7 +519,7 @@ export default function Questions() {
               </ScrollArea>
             </CardContent>
           </Card>
-          
+
         </div>
 
         {/* Right Column: Subjects Performance */}
@@ -547,12 +549,12 @@ export default function Questions() {
                       </div>
                       {/* Simple progress bar */}
                       <div className="w-full h-1.5 bg-secondary rounded-sm overflow-hidden mt-1">
-                        <div 
-                          className="h-full rounded-sm transition-all" 
-                          style={{ 
+                        <div
+                          className="h-full rounded-sm transition-all"
+                          style={{
                             width: `${stat.accuracy}%`,
                             backgroundColor: stat.accuracy >= 70 ? '#22c55e' : stat.accuracy >= 50 ? '#eab308' : '#ef4444'
-                          }} 
+                          }}
                         />
                       </div>
                     </div>
